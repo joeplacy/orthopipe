@@ -7,7 +7,7 @@ scan `.obj` + parsed prescription JSON → validated, print-ready orthotic STL.
 
 ```bash
 pip install trimesh numpy scipy shapely rtree matplotlib pydantic pymeshlab
-python run_demo.py
+python networkx run_demo.py
 ```
 
 Demo runs the peer's exact example Rx — *"Bilateral Medial Wedges, .25in Heel
