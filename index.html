@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrthoPipe — Review Station</title>
+<style>
+  :root { --bg:#0f1420; --panel:#1a2232; --panel2:#212b40; --text:#e6ecf5; --dim:#8fa1bd;
+          --accent:#4da3ff; --ok:#3ddc84; --bad:#ff5d5d; --border:#2c3950; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
+         background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; }
+  header { padding:12px 20px; background:var(--panel); border-bottom:1px solid #2c3950;
+           display:flex; align-items:center; gap:12px; }
+  header h1 { font-size:16px; margin:0; font-weight:600; }
+  header .sub { color:var(--dim); font-size:12px; }
+  main { flex:1; display:grid; grid-template-columns: 360px 1fr; gap:0; min-height:0; }
+  .sidebar { background:var(--panel); padding:16px; overflow-y:auto; border-right:1px solid #2c3950; }
+  .stage { display:flex; flex-direction:column; min-width:0; }
+  #viewer { flex:1; min-height:0; position:relative; }
+  #viewer canvas { display:block; }
+  #viewerHint { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+                color:var(--dim); font-size:14px; pointer-events:none; }
+  .reportbar { background:var(--panel); border-top:1px solid #2c3950; padding:12px 20px;
+               display:flex; gap:24px; align-items:center; flex-wrap:wrap; min-height:64px; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:18px 0 8px; }
+  label { font-size:13px; }
+  input[type=text], input[type=number], select, textarea {
+    width:100%; background:var(--panel2); border:1px solid #34425e; color:var(--text);
+    border-radius:6px; padding:7px 9px; font-size:13px; }
+  textarea { resize:vertical; min-height:56px; }
+  .row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .row label { flex:1; }
+  .row input[type=number] { width:76px; }
+  .row select { width:130px; }
+  .side-toggle { display:flex; gap:6px; margin-bottom:10px; }
+  .side-toggle button { flex:1; padding:8px; border-radius:6px; border:1px solid #34425e;
+    background:var(--panel2); color:var(--dim); cursor:pointer; font-weight:600; }
+  .side-toggle button.active { background:var(--accent); color:#0b1220; border-color:var(--accent); }
+  #dropzone { border:2px dashed #3a4a68; border-radius:10px; padding:22px 12px; text-align:center;
+    color:var(--dim); font-size:13px; cursor:pointer; transition:.15s; }
+  #dropzone.drag { border-color:var(--accent); color:var(--accent); background:#1c2a44; }
+  #dropzone.loaded { border-color:var(--ok); color:var(--ok); }
+  .btn { width:100%; padding:11px; border:none; border-radius:8px; font-size:14px; font-weight:700;
+         cursor:pointer; margin-top:14px; }
+  .btn-primary { background:var(--accent); color:#0b1220; }
+  .btn-approve { background:var(--ok); color:#062812; display:none; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .check { font-size:13px; }
+  .check .dot { font-weight:900; margin-right:5px; }
+  .pass { color:var(--ok); } .fail { color:var(--bad); }
+  .metric { font-size:13px; color:var(--dim); }
+  .metric b { color:var(--text); }
+  #status { font-size:12px; color:var(--dim); margin-top:8px; min-height:16px; }
+  .modrow { background:var(--panel2); border-radius:8px; padding:8px 10px; margin-bottom:6px; }
+  .modrow .row { margin-bottom:4px; }
+  .modrow .params { display:none; padding-left:22px; }
+  .modrow.on .params { display:block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>OrthoPipe <span style="color:var(--accent)">Review Station</span></h1>
+  <span class="sub">scan + prescription → generate → inspect → approve → print file</span>
+</header>
+<main>
+  <div class="sidebar">
+    <h2>1 · Order</h2>
+    <input type="text" id="orderId" value="ORDER-0001" title="Order ID from JotForm">
+    <div style="height:8px"></div>
+    <div class="side-toggle">
+      <button id="btnLeft" onclick="setSide('left')">LEFT foot</button>
+      <button id="btnRight" class="active" onclick="setSide('right')">RIGHT foot</button>
+    </div>
+
+    <h2>2 · Scan file (.obj)</h2>
+    <div id="dropzone">Drag the exported scan here<br>or click to browse</div>
+    <input type="file" id="fileInput" accept=".obj,.stl,.ply" style="display:none">
+
+    <h2>3 · Prescription (from work order)</h2>
+    <textarea id="rxText" placeholder="Paste the clinical Rx text here for the audit record (optional)"></textarea>
+
+    <h2>4 · Modifications</h2>
+    <div class="modrow" id="m_medial_wedge">
+      <div class="row"><input type="checkbox" onchange="toggleMod(this)"><label>Medial wedge</label></div>
+      <div class="params"><div class="row"><label>Degrees</label><input type="number" data-p="degrees" value="4" min="0" max="8" step="0.5"></div></div>
+    </div>
+    <div class="modrow" id="m_lateral_wedge">
+      <div class="row"><input type="checkbox" onchange="toggleMod(this)"><label>Lateral wedge</label></div>
+      <div class="params"><div class="row"><label>Degrees</label><input type="number" data-p="degrees" value="4" min="0" max="8" step="0.5"></div></div>
+    </div>
+    <div class="modrow" id="m_heel_lift">
+      <div class="row"><input type="checkbox" onchange="toggleMod(this)"><label>Heel lift</label></div>
+      <div class="params"><div class="row"><label>Height (mm) <span class="metric">(¼″ = 6.35)</span></label><input type="number" data-p="height_mm" value="6.35" min="0" max="15" step="0.05"></div></div>
+    </div>
+    <div class="modrow" id="m_met_pad">
+      <div class="row"><input type="checkbox" onchange="toggleMod(this)"><label>Metatarsal pad</label></div>
+      <div class="params"><div class="row"><label>Height (mm)</label><input type="number" data-p="height_mm" value="3" min="1" max="6" step="0.5"></div></div>
+    </div>
+    <div class="modrow" id="m_relief">
+      <div class="row"><input type="checkbox" onchange="toggleMod(this)"><label>Relief / offload</label></div>
+      <div class="params">
+        <div class="row"><label>Landmark</label>
+          <select data-p="landmark">
+            <option value="base_5th_met">Base of 5th met</option>
+            <option value="met_heads">Met heads</option>
+            <option value="heel_center">Heel center</option>
+            <option value="arch_apex">Arch apex</option>
+            <option value="hallux">Hallux</option>
+          </select></div>
+        <div class="row"><label>Depth (mm)</label><input type="number" data-p="depth_mm" value="2" min="0.5" max="4" step="0.5"></div>
+        <div class="row"><label>Radius (mm)</label><input type="number" data-p="radius_mm" value="12" min="5" max="25" step="1"></div>
+      </div>
+    </div>
+
+    <h2>5 · Shell</h2>
+    <div class="row"><label>Thickness (mm)</label><input type="number" id="sh_thickness" value="3.5" min="2" max="6" step="0.5"></div>
+    <div class="row"><label>Trim</label>
+      <select id="sh_trim"><option value="3quarter">¾ length</option><option value="sulcus">Sulcus</option><option value="full">Full</option></select></div>
+    <div class="row"><label>Heel cup (mm)</label><input type="number" id="sh_cup" value="10" min="0" max="18" step="1"></div>
+
+    <button class="btn btn-primary" id="btnGenerate" onclick="generate()" disabled>Generate orthotic</button>
+    <button class="btn btn-approve" id="btnApprove" onclick="approve()">✓ Approve & download STL</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="stage">
+    <div id="viewer"><div id="viewerHint">Generated model will appear here — drag to rotate, scroll to zoom</div></div>
+    <div class="reportbar" id="report"><span class="metric">No model generated yet.</span></div>
+  </div>
+</main>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+// ---------- state ----------
+let side = 'right', scanId = null, resultId = null;
+
+// ---------- 3D viewer ----------
+const viewerEl = document.getElementById('viewer');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f1420);
+const camera = new THREE.PerspectiveCamera(45, 1, 1, 5000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+viewerEl.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x334, 1.1));
+const dl = new THREE.DirectionalLight(0xffffff, 1.2); dl.position.set(1, 1, 2); scene.add(dl);
+const grid = new THREE.GridHelper(400, 20, 0x2c3950, 0x1e293d);
+grid.rotation.x = Math.PI / 2;  // our models are Z-up
+scene.add(grid);
+let modelMesh = null;
+
+function resize() {
+  const w = viewerEl.clientWidth, h = viewerEl.clientHeight;
+  renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(viewerEl);
+(function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); })();
+
+function loadSTL(url) {
+  new STLLoader().load(url, geo => {
+    if (modelMesh) scene.remove(modelMesh);
+    geo.computeVertexNormals();
+    modelMesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial(
+      { color: 0x4da3ff, specular: 0x223344, shininess: 30 }));
+    geo.computeBoundingBox();
+    const c = new THREE.Vector3(); geo.boundingBox.getCenter(c);
+    modelMesh.position.sub(c);
+    scene.add(modelMesh);
+    const size = new THREE.Vector3(); geo.boundingBox.getSize(size);
+    const d = Math.max(size.x, size.y, size.z) * 1.6;
+    camera.position.set(d * 0.7, -d, d * 0.8); camera.up.set(0, 0, 1);
+    controls.target.set(0, 0, 0);
+    document.getElementById('viewerHint').style.display = 'none';
+  });
+}
+
+// ---------- UI wiring ----------
+window.setSide = s => { side = s;
+  document.getElementById('btnLeft').classList.toggle('active', s === 'left');
+  document.getElementById('btnRight').classList.toggle('active', s === 'right'); };
+window.toggleMod = cb => cb.closest('.modrow').classList.toggle('on', cb.checked);
+
+const dz = document.getElementById('dropzone'), fi = document.getElementById('fileInput');
+dz.onclick = () => fi.click();
+dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag'); };
+dz.ondragleave = () => dz.classList.remove('drag');
+dz.ondrop = e => { e.preventDefault(); dz.classList.remove('drag'); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); };
+fi.onchange = () => fi.files[0] && upload(fi.files[0]);
+
+const status = m => document.getElementById('status').textContent = m;
+
+async function upload(file) {
+  status(`Uploading ${file.name} …`);
+  const fd = new FormData(); fd.append('file', file);
+  const r = await fetch('/api/upload', { method: 'POST', body: fd });
+  if (!r.ok) { status('Upload failed: ' + (await r.json()).detail); return; }
+  const j = await r.json();
+  scanId = j.scan_id;
+  dz.classList.add('loaded'); dz.textContent = `✓ ${j.filename}`;
+  document.getElementById('btnGenerate').disabled = false;
+  status('Scan uploaded. Set the prescription, then Generate.');
+}
+
+function collectMods() {
+  const mods = [];
+  document.querySelectorAll('.modrow.on').forEach(row => {
+    const m = { type: row.id.slice(2) };
+    row.querySelectorAll('[data-p]').forEach(inp =>
+      m[inp.dataset.p] = inp.type === 'number' ? parseFloat(inp.value) : inp.value);
+    mods.push(m);
+  });
+  return mods;
+}
+
+window.generate = async () => {
+  status('Generating — cleanup, alignment, shell, mods …');
+  document.getElementById('btnGenerate').disabled = true;
+  const body = {
+    scan_id: scanId, side, order_id: document.getElementById('orderId').value || 'ORDER',
+    rx: { mods: collectMods() },
+    shell: { thickness_mm: +document.getElementById('sh_thickness').value,
+             trim: document.getElementById('sh_trim').value,
+             heel_cup_depth_mm: +document.getElementById('sh_cup').value },
+    rx_text: document.getElementById('rxText').value };
+  const r = await fetch('/api/generate', { method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  document.getElementById('btnGenerate').disabled = false;
+  if (!r.ok) { status('Error: ' + (await r.json()).detail); return; }
+  const j = await r.json();
+  resultId = j.result_id;
+  loadSTL(j.stl_url);
+  renderReport(j.report);
+  document.getElementById('btnApprove').style.display = 'block';
+  status(`Generated in ${j.report.generation_seconds}s. Inspect, then approve.`);
+};
+
+function renderReport(rep) {
+  const el = document.getElementById('report');
+  const checks = Object.entries(rep.checks).map(([k, v]) =>
+    `<span class="check ${v ? 'pass' : 'fail'}"><span class="dot">${v ? '✓' : '✗'}</span>${k.replaceAll('_',' ')}</span>`).join('');
+  const warn = (rep.warnings || []).length
+    ? `<span class="check fail">⚠ ${rep.warnings.join('; ')}</span>` : '';
+  el.innerHTML = `
+    <span class="check ${rep.pass ? 'pass' : 'fail'}" style="font-size:15px;font-weight:800">
+      ${rep.pass ? 'VALIDATION PASS' : 'VALIDATION FAIL'}</span>
+    ${checks} ${warn}
+    <span class="metric">Volume <b>${rep.volume_cm3} cm³</b></span>
+    <span class="metric">TPU est. <b>${rep.est_print_mass_g_tpu} g</b></span>
+    <span class="metric">Size <b>${rep.extents_mm.join(' × ')} mm</b></span>
+    <span class="metric">Foot length <b>${rep.foot_length_mm} mm</b></span>`;
+}
+
+window.approve = async () => {
+  const r = await fetch('/api/approve/' + resultId, { method: 'POST' });
+  if (!r.ok) { status('Approve failed'); return; }
+  const j = await r.json();
+  status('Approved ✓ — logged to audit trail. Downloading STL…');
+  const a = document.createElement('a');
+  a.href = j.download_url; a.download = ''; a.click();
+};
+</script>
+</body>
+</html>

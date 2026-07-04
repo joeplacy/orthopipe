@@ -1,0 +1,12 @@
+trimesh
+numpy
+scipy
+shapely
+rtree
+networkx
+matplotlib
+pydantic
+pymeshlab
+fastapi
+uvicorn
+python-multipart

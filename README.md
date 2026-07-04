@@ -7,7 +7,7 @@ scan `.obj` + parsed prescription JSON → validated, print-ready orthotic STL.
 
 ```bash
 pip install trimesh numpy scipy shapely rtree matplotlib pydantic pymeshlab
-python networkx run_demo.py
+python run_demo.py
 ```
 
 Demo runs the peer's exact example Rx — *"Bilateral Medial Wedges, .25in Heel
@@ -61,3 +61,12 @@ Full demo (both feet + renders): ~12 s. Geometry alone: ~3 s/foot.
 2. Add the Claude Rx-parser call emitting `Prescription` (schema already final).
 3. `prusa-slicer --export-gcode --load tpu95a.ini` on validated STLs.
 4. FastAPI wrapper + review page per dev doc §4.5.
+
+## v1.1 — Review Station (web UI)
+
+```bash
+pip install -r requirements.txt
+python app.py
+```
+Open port 8000 in the browser. Workflow: drag in scan -> set Rx mods ->
+Generate -> inspect 3D model + validation -> Approve (audit-logged) -> STL downloads.
