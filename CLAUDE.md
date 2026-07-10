@@ -38,7 +38,8 @@ in sync until the duplication is cleaned up upstream).
 | `geometry.py` | Cleanup → alignment → heightfield → shell → mods → validate → export |
 | `synthetic_foot.py` | Fake scan generator (dev only) |
 | `run_demo.py` | End-to-end CLI demo |
-| `app.py` | FastAPI review-station backend |
+| `rx_parser.py` | Claude-powered free-text Rx → `Prescription` (needs `ANTHROPIC_API_KEY`) |
+| `app.py` | FastAPI review-station backend (incl. `/api/parse_rx`) |
 | `static/index.html` | Review-station frontend (served by `app.py`) |
 
 ## Notes

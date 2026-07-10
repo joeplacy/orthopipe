@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from schema import FootRx, Shell
 from geometry import generate_orthotic
+from rx_parser import parse_prescription
 
 BASE = Path(__file__).parent
 UPLOADS = BASE / "uploads"
@@ -44,6 +45,27 @@ async def upload_scan(file: UploadFile = File(...)):
     SCANS[scan_id] = {"path": str(dest), "filename": file.filename,
                       "uploaded_at": time.strftime("%Y-%m-%d %H:%M:%S")}
     return {"scan_id": scan_id, "filename": file.filename}
+
+
+class ParseRxRequest(BaseModel):
+    rx_text: str
+    order_id: str = "ORDER"
+
+
+@app.post("/api/parse_rx")
+def parse_rx(req: ParseRxRequest):
+    """Free-text prescription -> structured Prescription draft (Claude-parsed).
+
+    Output is schema-validated and range-clamped; the reviewer still edits and
+    approves it in the UI before anything is generated.
+    """
+    if not req.rx_text.strip():
+        raise HTTPException(400, "Prescription text is empty")
+    try:
+        rx = parse_prescription(req.rx_text, req.order_id)
+    except Exception as e:
+        raise HTTPException(502, f"Rx parser failed: {e}")
+    return rx.model_dump()
 
 
 class GenerateRequest(BaseModel):

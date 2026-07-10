@@ -79,6 +79,8 @@
 
     <h2>3 · Prescription (from work order)</h2>
     <textarea id="rxText" placeholder="Paste the clinical Rx text here for the audit record (optional)"></textarea>
+    <button class="btn" id="btnParseRx" onclick="parseRx()" style="margin-top:6px">✨ Parse Rx with Claude → fill mods</button>
+    <div id="rxWarnings" style="display:none;color:#ffb454;font-size:12px;margin-top:6px"></div>
 
     <h2>4 · Modifications</h2>
     <div class="modrow" id="m_medial_wedge">
@@ -220,6 +222,53 @@ function collectMods() {
     mods.push(m);
   });
   return mods;
+}
+
+window.parseRx = async () => {
+  const text = document.getElementById('rxText').value.trim();
+  if (!text) { status('Paste the prescription text first.'); return; }
+  const btn = document.getElementById('btnParseRx');
+  btn.disabled = true; status('Parsing prescription with Claude …');
+  const warnEl = document.getElementById('rxWarnings');
+  warnEl.style.display = 'none';
+  try {
+    const r = await fetch('/api/parse_rx', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rx_text: text,
+        order_id: document.getElementById('orderId').value || 'ORDER' }) });
+    if (!r.ok) { status('Parse failed: ' + (await r.json()).detail); return; }
+    const rx = await r.json();
+    applyParsedRx(rx);
+    const msgs = [];
+    if (rx.needs_manual) msgs.push('NEEDS MANUAL REVIEW');
+    if ((rx.ambiguities || []).length) msgs.push(...rx.ambiguities);
+    if (msgs.length) { warnEl.textContent = '⚠ ' + msgs.join(' · '); warnEl.style.display = 'block'; }
+    status(`Parsed. Mods filled for the ${side.toUpperCase()} foot — verify every value before generating.`);
+  } finally { btn.disabled = false; }
+};
+
+function applyParsedRx(rx) {
+  // fill the mod panel from the parsed Rx for the currently selected side
+  document.querySelectorAll('.modrow').forEach(row => {
+    row.classList.remove('on');
+    row.querySelector('input[type=checkbox]').checked = false;
+  });
+  const foot = rx[side];
+  if (!foot) return;
+  for (const m of foot.mods) {
+    const row = document.getElementById('m_' + m.type);
+    if (!row) continue;
+    row.classList.add('on');
+    row.querySelector('input[type=checkbox]').checked = true;
+    row.querySelectorAll('[data-p]').forEach(inp => {
+      if (m[inp.dataset.p] !== undefined) inp.value = m[inp.dataset.p];
+    });
+  }
+  if (rx.shell) {
+    document.getElementById('sh_thickness').value = rx.shell.thickness_mm;
+    document.getElementById('sh_trim').value = rx.shell.trim;
+    document.getElementById('sh_cup').value = rx.shell.heel_cup_depth_mm;
+  }
 }
 
 window.generate = async () => {

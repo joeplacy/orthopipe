@@ -10,3 +10,4 @@ pymeshlab
 fastapi
 uvicorn
 python-multipart
+anthropic
