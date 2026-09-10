@@ -25,7 +25,11 @@ Status: **implemented locally; CI activates after the repository is pushed.**
 
 ### Gate 1 — Fabricator workflow confirmed
 
-Status: **blocked on access to a fabricator; not required for Gate 0.**
+Status: **partially documented.** The intake, Meshmixer orientation/layout, Simplify3D support,
+toolpath review, and G-code handoff path are captured in
+[`fabricator-workflow-current-state.md`](fabricator-workflow-current-state.md). The separate
+prescription-modification procedure, timings, exception paths, acceptance rules, equipment, and
+system ownership remain outstanding.
 
 Observe real work rather than relying only on an interview. Complete
 [`workflow-discovery.md`](workflow-discovery.md), including the happy path, exception paths,
@@ -98,6 +102,8 @@ These choices should follow workflow discovery rather than be baked into the pro
 - Audit and complaint records are local JSONL, not transactional or access-controlled.
 - No authentication, authorization, tenant separation, electronic signatures, or TLS termination.
 - Upload processing is synchronous and geometry work is not isolated in a durable job worker.
+- Print preparation stops at a multi-body STL and manifest. It does not open a Simplify3D factory
+  file, generate supports/G-code, or perform the required visual toolpath approval.
 - Pressure output is a deterministic proxy, not validated FEA or clinical pressure evidence.
 - Landmark rules and geometry have not been calibrated against representative real orders.
 - Offline parser fixtures are placeholder emulations and must not be quoted as production accuracy.

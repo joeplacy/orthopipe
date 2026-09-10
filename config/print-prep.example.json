@@ -1,0 +1,8 @@
+{
+  "pair_gap_mm": 5.0,
+  "bed_embed_mm": 0.3,
+  "support_angle_threshold_deg": 23.0,
+  "bed_width_mm": null,
+  "bed_depth_mm": null,
+  "bed_height_mm": null
+}

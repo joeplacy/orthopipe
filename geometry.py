@@ -39,6 +39,45 @@ BODY_LOAD_N = 350.0            # ~50% BW of a 70 kg subject, single-foot stance
 E_SOLID_PA = 1.0e6
 GIBSON_ASHBY_N = 2.0          # bending-dominated lattice exponent: E_eff ≈ E_solid·ρ^n
 PRESSURE_PEAK_MAX_KPA = 600.0  # above this = implausible (clinical peaks ~200-500 kPa)
+# Fabricator workflow uses heel + metatarsal plantar contact with the Meshmixer bed
+# as the orientation reference. This provisional threshold only raises a review
+# warning until a real scan/final-FO pair establishes a validated lab tolerance.
+BED_CONTACT_REVIEW_MM = 3.0
+
+
+def bed_plane_contact_metrics(mesh: trimesh.Trimesh) -> dict:
+    """Measure heel-vs-metatarsal plantar contact after canonical alignment.
+
+    The written fabrication workflow calls for both regions to touch the bed plane.
+    We approximate each contact height with the 5th z-percentile in an anatomical
+    y-band, which is more robust than a single minimum vertex. This is an observable
+    review metric, not yet a clinical pass/fail criterion.
+    """
+    v = np.asarray(mesh.vertices, dtype=float)
+    if len(v) == 0:
+        return {"heel_z_mm": None, "metatarsal_z_mm": None,
+                "delta_mm": None, "review_recommended": True}
+    ymin, ymax = float(v[:, 1].min()), float(v[:, 1].max())
+    length = ymax - ymin
+    if length <= 0:
+        return {"heel_z_mm": None, "metatarsal_z_mm": None,
+                "delta_mm": None, "review_recommended": True}
+    yn = (v[:, 1] - ymin) / length
+
+    def contact(lo: float, hi: float) -> float | None:
+        z = v[(yn >= lo) & (yn <= hi), 2]
+        return None if len(z) == 0 else float(np.percentile(z, 5))
+
+    heel_z = contact(0.03, 0.20)
+    met_z = contact(0.60, 0.80)
+    delta = None if heel_z is None or met_z is None else abs(heel_z - met_z)
+    return {
+        "heel_z_mm": None if heel_z is None else round(heel_z, 3),
+        "metatarsal_z_mm": None if met_z is None else round(met_z, 3),
+        "delta_mm": None if delta is None else round(delta, 3),
+        "review_recommended": delta is None or delta > BED_CONTACT_REVIEW_MM,
+        "provisional_review_threshold_mm": BED_CONTACT_REVIEW_MM,
+    }
 
 
 # ---------------------------------------------------------------- cleanup ----
@@ -549,6 +588,10 @@ def generate_orthotic(scan_path: str, side: str, rx: FootRx, shell: Shell, out_s
     scan = clean_scan(scan, warnings=warnings)
     aligned, align_warnings = align_canonical(scan, side)
     warnings += align_warnings
+    bed_contact = bed_plane_contact_metrics(aligned)
+    if bed_contact["review_recommended"]:
+        warnings.append("alignment: heel/metatarsal bed contact differs by more than "
+                        f"the provisional {BED_CONTACT_REVIEW_MM:.1f} mm review threshold")
     hf = Heightfield(aligned)
     top, mask = build_shell(hf, shell)
     top, applied = apply_mods(top, mask, hf, rx)
@@ -570,5 +613,6 @@ def generate_orthotic(scan_path: str, side: str, rx: FootRx, shell: Shell, out_s
         pressure_metrics["peak_pressure_kpa"] <= pressure_metrics["peak_pressure_solid_kpa"] + 1e-6)
     report["pass"] = all(report["checks"].values())   # new checks now participate
     report.update({"side": side, "mods_applied": applied, "warnings": warnings,
-                   "foot_length_mm": round(hf.L, 1), "output": out_stl})
+                   "foot_length_mm": round(hf.L, 1), "output": out_stl,
+                   "bed_plane_contact": bed_contact})
     return solid, aligned, hf, top, mask, report

@@ -31,3 +31,10 @@ jobs:
         run: python replay.py --selftest
       - name: End-to-end synthetic demo
         run: python run_demo.py
+      - name: Bilateral print preparation
+        run: >-
+          python print_prep.py
+          --left DEMO-0001_left.stl
+          --right DEMO-0001_right.stl
+          --order-id DEMO-0001
+          --out outputs/DEMO-0001_print_pair.stl

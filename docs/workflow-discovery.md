@@ -1,5 +1,9 @@
 # Fabricator workflow discovery guide
 
+The first written workflow has been mapped in
+[`fabricator-workflow-current-state.md`](fabricator-workflow-current-state.md). Use this guide to
+fill its known gaps rather than asking the fabricator to repeat the documented steps.
+
 Use this during direct observation of at least one routine order and one difficult/rework order.
 Do not record patient identifiers. Capture screenshots or sample files only after they are
 de-identified and approved for use.

@@ -17,6 +17,7 @@ control, durable storage, and printer/material process validation remain release
   complaint capture, and replay scorecards.
 - Cloud and explicitly selected local Rx-parser backends.
 - Historical-order replay/diff harness and landmark calibration tools.
+- Deterministic bilateral print preparation with multi-body STL and manufacturing manifest.
 - Offline Rx evaluation fixtures and a stdlib regression suite.
 - De-identification guards for replay inputs and phone-scan normalization helpers.
 
@@ -48,6 +49,7 @@ authorization, TLS, and durable audit storage are implemented.
 |---|---|
 | `make verify` | Unit tests, parser self-check/offline evaluation, replay identity check |
 | `make demo` | Full synthetic scan → STL run for both feet |
+| `make print-prep-demo` | Generate, orient, pair, and manifest the two demo orthoses |
 | `make replay-synthetic` | Five-order replay/diff exercise in `outputs/replay/` |
 | `python -m eval.score_rx --offline` | Score cached parser fixtures without an API key |
 | `python -m landmarks --help` | Landmark measurement/calibration commands |
@@ -81,10 +83,33 @@ Start with [`examples/deidentified-order/README.md`](examples/deidentified-order
 | `rx_parser.py`, `rx_backends.py` | Free-text prescription parsing |
 | `app.py`, `static/index.html` | Review-station API and UI |
 | `replay.py` | Historical replay and geometric scorecards |
+| `print_prep.py`, `workflow.py` | Bilateral build layout and confirmed production states |
 | `landmarks.py` | Landmark measurement and calibration |
 | `eval/` | Offline parser evaluation |
 | `tests/` | Fast regression and safety tests |
 | `docs/` | Strategy, discovery, data handling, and readiness gates |
+
+## Print preparation
+
+The confirmed fabricator workflow stands each completed FO with its forefoot upward, places the
+medial faces toward the center without contact, combines both objects for export, embeds them
+`0.3 mm` into the Simplify3D bed, and generates supports at a `23°` threshold. OrthoPipe automates
+the deterministic geometry portion and records the slicing values without pretending to generate
+or approve G-code:
+
+```bash
+python print_prep.py \
+  --left ORDER_left.stl \
+  --right ORDER_right.stl \
+  --order-id ORDER \
+  --out outputs/ORDER_print_pair.stl \
+  --profile config/print-prep.example.json
+```
+
+The output includes a multi-body STL, front/top layout preview, and JSON manifest. The manifest
+deliberately blocks G-code release until supports, slicing, and visual toolpath QC are completed.
+Printer bed dimensions remain unset—and bed fit is reported as unknown—until the real factory
+profile is available.
 
 ## Product direction
 
