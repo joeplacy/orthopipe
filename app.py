@@ -9,6 +9,7 @@ Run:  python app.py     (then open the forwarded port 8000 in the browser)
 """
 import hashlib
 import json
+import os
 import time
 import uuid
 from datetime import datetime, timezone
@@ -18,7 +19,7 @@ import uvicorn
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field as PydanticField
 
 import rx_parser
 from schema import FootRx, Shell
@@ -27,8 +28,11 @@ from rx_parser import parse_prescription
 from intake import normalize_scan
 
 BASE = Path(__file__).parent
-UPLOADS = BASE / "uploads"
-OUTPUTS = BASE / "outputs"
+DATA_DIR = Path(os.environ.get("ORTHOPIPE_DATA_DIR", BASE)).expanduser().resolve()
+UPLOADS = DATA_DIR / "uploads"
+OUTPUTS = DATA_DIR / "outputs"
+MAX_UPLOAD_BYTES = int(os.environ.get("ORTHOPIPE_MAX_UPLOAD_BYTES", str(100 * 1024 * 1024)))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 UPLOADS.mkdir(exist_ok=True)
 OUTPUTS.mkdir(exist_ok=True)
 
@@ -93,26 +97,31 @@ def _append_event(path: Path, event_type: str, payload: dict) -> dict:
 
 @app.post("/api/upload")
 async def upload_scan(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith((".obj", ".stl", ".ply", ".usdz")):
+    safe_name = Path(file.filename or "scan").name
+    if not safe_name.lower().endswith((".obj", ".stl", ".ply", ".usdz")):
         raise HTTPException(400, "Please upload a .obj, .stl, .ply, or .usdz scan file")
     scan_id = uuid.uuid4().hex[:8]
-    dest = UPLOADS / f"{scan_id}_{file.filename}"
-    dest.write_bytes(await file.read())
+    dest = UPLOADS / f"{scan_id}_{safe_name}"
+    payload = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(payload) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"Scan exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit")
+    dest.write_bytes(payload)
     # phone-scan intake: usdz->obj (if USD tooling present) + meters->mm scale check.
     # Returns an already-normalized path; /api/generate needs no change.
     try:
         norm_path, warnings = normalize_scan(str(dest))
     except ValueError as e:            # e.g. usdz without USD tooling -> guidance, HTTP 400
         raise HTTPException(400, str(e))
-    SCANS[scan_id] = {"path": norm_path, "filename": file.filename,
+    SCANS[scan_id] = {"path": norm_path, "filename": safe_name,
                       "uploaded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                       "warnings": warnings}
-    return {"scan_id": scan_id, "filename": file.filename, "warnings": warnings}
+    return {"scan_id": scan_id, "filename": safe_name, "warnings": warnings}
 
 
 class ParseRxRequest(BaseModel):
     rx_text: str
-    order_id: str = "ORDER"
+    order_id: str = PydanticField("ORDER", min_length=1, max_length=80,
+                                  pattern=r"^[A-Za-z0-9_-]+$")
 
 
 @app.post("/api/parse_rx")
@@ -134,9 +143,10 @@ def parse_rx(req: ParseRxRequest):
 class GenerateRequest(BaseModel):
     scan_id: str
     side: str                       # "left" | "right"
-    order_id: str = "ORDER"
+    order_id: str = PydanticField("ORDER", min_length=1, max_length=80,
+                                  pattern=r"^[A-Za-z0-9_-]+$")
     rx: dict                        # FootRx-shaped: {"mods": [...]}
-    shell: dict = {}                # Shell-shaped
+    shell: dict = PydanticField(default_factory=dict)  # Shell-shaped
     rx_text: str = ""               # raw prescription text, stored for audit
 
 
@@ -279,6 +289,10 @@ REPLAY_DIR = OUTPUTS / "replay"
 
 
 def _find_scorecard(order_id: str) -> Path | None:
+    if (not order_id or len(order_id) > 80 or
+            any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+                for c in order_id)):
+        return None
     if not REPLAY_DIR.exists():
         return None
     hits = sorted(REPLAY_DIR.glob(f"{order_id}_*_scorecard.json"))
@@ -301,13 +315,22 @@ def get_replay_heatmap(order_id: str):
     sc = _find_scorecard(order_id)
     if sc is None:
         raise HTTPException(404, "No replay scorecard for this order_id")
-    png = REPLAY_DIR / json.loads(sc.read_text()).get("heatmap_png", "")
-    if not png.exists():
+    heatmap_name = Path(json.loads(sc.read_text()).get("heatmap_png", "")).name
+    png = (REPLAY_DIR / heatmap_name).resolve()
+    if png.parent != REPLAY_DIR.resolve() or png.suffix.lower() != ".png" or not png.exists():
         raise HTTPException(404, "Heatmap not found")
     return FileResponse(str(png), media_type="image/png", filename=png.name)
+
+
+@app.get("/api/health")
+def health():
+    """Process-level readiness probe. Clinical readiness is reported per generated part."""
+    return {"status": "ok", "service": "orthopipe"}
 
 
 app.mount("/", StaticFiles(directory=BASE / "static", html=True), name="static")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app,
+                host=os.environ.get("ORTHOPIPE_HOST", "127.0.0.1"),
+                port=int(os.environ.get("ORTHOPIPE_PORT", "8000")))

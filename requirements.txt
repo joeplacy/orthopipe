@@ -1,18 +1,18 @@
-trimesh
-numpy
-scipy
-shapely
-rtree
-networkx
-matplotlib
-pydantic
-pymeshlab
-scikit-image
-manifold3d
-fastapi
-uvicorn
-python-multipart
-anthropic
+trimesh==4.12.2
+numpy==2.4.6
+scipy==1.17.1
+shapely==2.1.2
+rtree==1.4.1
+networkx==3.6.1
+matplotlib==3.11.0
+pydantic==2.13.4
+pymeshlab==2025.7.post1
+scikit-image==0.26.0
+manifold3d==3.5.2
+fastapi==0.139.0
+uvicorn==0.51.0
+python-multipart==0.0.32
+anthropic==0.116.0
 
 # Optional extras (NOT installed by default; lazy-imported when selected):
 #   ollama            # ORTHOPIPE_RX_BACKEND=local (PHI-safe local Rx parsing)

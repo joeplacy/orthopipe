@@ -13,6 +13,10 @@ DEMO-*_pressure.png
 # landmark annotations may reference PHI-bearing scans; keep out of git
 annotations/
 landmark_calibration.json
+.env
+.coverage
+.mypy_cache/
+.pytest_cache/
 
 # ...but the canonical ICP template is a checked-in asset, not demo output
 !templates/right_foot_template.stl

@@ -51,6 +51,9 @@ def _scrub_pii(obj):
             for k, v in o.items():
                 if isinstance(k, str) and k.lower() in PII_KEYS:
                     found.add(k)
+                    # Continue walking only to inventory additional denied keys nested
+                    # inside a dropped container; no value from the subtree is retained.
+                    walk(v)
                     continue
                 out[k] = walk(v)
             return out

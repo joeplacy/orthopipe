@@ -1,0 +1,33 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MPLBACKEND: Agg
+      MPLCONFIGDIR: /tmp/orthopipe-mpl-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Unit and contract tests
+        run: python -m unittest discover -s tests -v
+      - name: Offline Rx evaluation
+        run: python -m eval.score_rx --selfcheck && python -m eval.score_rx --offline
+      - name: Geometric identity check
+        run: python replay.py --selftest
+      - name: End-to-end synthetic demo
+        run: python run_demo.py

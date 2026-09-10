@@ -1,72 +1,93 @@
-# OrthoPipe — Geometry Engine Prototype
+# OrthoPipe
 
-Working prototype of the core described in `orthotic-mvp-dev-doc.md` §4.4:
-scan `.obj` + parsed prescription JSON → validated, print-ready orthotic STL.
+OrthoPipe is a production-oriented internal tool for orthotics fabrication labs. It turns a
+3D foot scan plus a structured or free-text prescription into a validated, reviewer-approved,
+print-ready orthotic STL with a traceable record from intake through approval.
 
-## Run it
+The repository is an engineering prototype, **not yet a production or clinically validated
+system**. Synthetic geometry passes today; real-world calibration, workflow validation, access
+control, durable storage, and printer/material process validation remain release gates. See
+[`docs/production-readiness.md`](docs/production-readiness.md).
+
+## What exists
+
+- Scan cleanup, canonical alignment, heightfield shell generation, prescription modifications,
+  variable-stiffness lattice support, geometric checks, and a pressure proxy.
+- FastAPI review station for upload, prescription review, generation, approval, download,
+  complaint capture, and replay scorecards.
+- Cloud and explicitly selected local Rx-parser backends.
+- Historical-order replay/diff harness and landmark calibration tools.
+- Offline Rx evaluation fixtures and a stdlib regression suite.
+- De-identification guards for replay inputs and phone-scan normalization helpers.
+
+## Local setup
+
+Requires Python 3.11. The dependency versions in `requirements.txt` are pinned to the validated
+baseline.
 
 ```bash
-pip install trimesh numpy scipy shapely rtree matplotlib pydantic pymeshlab
-python run_demo.py
+make setup
+make verify
+make demo
 ```
 
-Demo runs the peer's exact example Rx — *"Bilateral Medial Wedges, .25in Heel
-lift on Right only. Lateral base of 5th relief, both feet"* — against two
-synthetic scans (noisy, misaligned, with floating debris) and produces:
+To start the local review station:
 
-- `DEMO-0001_left.stl`, `DEMO-0001_right.stl` — watertight solids, slicer-ready
-- `DEMO-0001_{side}_preview.png` — 4-panel reviewer render (aligned scan,
-  top-surface heatmap with landmarks, output solid, sagittal profile)
-- JSON validation report per foot (watertight / volume / dimensions / TPU mass)
+```bash
+# Use .env.example as a reference; export overrides in your shell/process manager.
+make serve
+```
 
-Full demo (both feet + renders): ~12 s. Geometry alone: ~3 s/foot.
+The server binds to `127.0.0.1:8000` by default. `ORTHOPIPE_DATA_DIR` moves runtime uploads and
+outputs outside the source tree. Do not expose the server to a network until authentication,
+authorization, TLS, and durable audit storage are implemented.
 
-## Files
+## Common commands
 
-| File | Role |
+| Command | Purpose |
 |---|---|
-| `schema.py` | Pydantic Rx schema — the LLM↔geometry contract |
-| `geometry.py` | Cleanup → alignment → heightfield → shell → mods → validate → export |
-| `synthetic_foot.py` | Fake Comb-style scan generator (dev only) |
-| `run_demo.py` | End-to-end demo + reviewer previews |
+| `make verify` | Unit tests, parser self-check/offline evaluation, replay identity check |
+| `make demo` | Full synthetic scan → STL run for both feet |
+| `make replay-synthetic` | Five-order replay/diff exercise in `outputs/replay/` |
+| `python -m eval.score_rx --offline` | Score cached parser fixtures without an API key |
+| `python -m landmarks --help` | Landmark measurement/calibration commands |
 
-## Architecture decisions embodied here
+## Rx parsing and PHI
 
-1. **Heightfield, not booleans.** The orthotic is a `Z(x,y)` surface over a
-   flat bottom; every mod (wedge, lift, relief, met pad, cup) is array math.
-   Watertightness is by construction, and generation is deterministic.
-2. **Fixed mod ordering in code** (`apply_mods`) — the LLM chooses *parameters*,
-   never sequencing.
-3. **Canonical frame first.** All anatomy heuristics (landmarks, medial side,
-   heel/toe) run on an aligned right-foot frame; left feet mirror in and out.
-4. **Min-thickness clamp** (2 mm) — reliefs can never punch through the shell.
-5. **Alignment heuristics emit warnings**, not silent guesses — surfaced to the
-   reviewer.
+Geometry and offline evaluation require no model API key. Live parsing defaults to Anthropic and
+requires `ANTHROPIC_API_KEY`; the local Ollama path is selected explicitly with
+`ORTHOPIPE_RX_BACKEND=local`. Never commit keys or paste patient-identifying data into fixtures.
+Before real PHI is processed, complete the data-handling controls in
+[`docs/data-handling.md`](docs/data-handling.md) and confirm appropriate vendor agreements.
 
-## Known prototype limitations (v1 backlog)
+## Historical calibration input
 
-- Landmarks are proportional heuristics; validate against real scans in Phase 0
-  and add reviewer drag-to-correct.
-- `clean_scan` is minimal; wire in the pymeshlab close-holes/decimate recipe for
-  real (hole-riddled) Comb exports.
-- Left/right auto-detection not attempted — side comes from the work order.
-- Trim outlines derive from the footprint; production wants template outline
-  library scaled to foot length.
-- Synthetic scans only — first task with real data is replaying historical
-  orders through `generate_orthotic` and diffing against fabricator output.
+The replay harness consumes one directory per de-identified order containing:
 
-## Next integration steps
+- `order.json` — non-identifying order ID, side, and optional shell settings
+- `rx.json` — structured prescription
+- `scan.obj`, `scan.stl`, or `scan.ply` — original scan geometry
+- `reference.stl` — fabricator-approved final device
 
-1. Swap `synthetic_foot.py` for real de-identified `.obj` exports.
-2. Add the Claude Rx-parser call emitting `Prescription` (schema already final).
-3. `prusa-slicer --export-gcode --load tpu95a.ini` on validated STLs.
-4. FastAPI wrapper + review page per dev doc §4.5.
+Start with [`examples/deidentified-order/README.md`](examples/deidentified-order/README.md).
 
-## v1.1 — Review Station (web UI)
+## Repository map
 
-```bash
-pip install -r requirements.txt
-python app.py
-```
-Open port 8000 in the browser. Workflow: drag in scan -> set Rx mods ->
-Generate -> inspect 3D model + validation -> Approve (audit-logged) -> STL downloads.
+| Path | Role |
+|---|---|
+| `schema.py` | Validated prescription contract |
+| `geometry.py` | Cleanup → alignment → shell → mods → validation → export |
+| `lattice.py` | Optional zoned lattice generation |
+| `rx_parser.py`, `rx_backends.py` | Free-text prescription parsing |
+| `app.py`, `static/index.html` | Review-station API and UI |
+| `replay.py` | Historical replay and geometric scorecards |
+| `landmarks.py` | Landmark measurement and calibration |
+| `eval/` | Offline parser evaluation |
+| `tests/` | Fast regression and safety tests |
+| `docs/` | Strategy, discovery, data handling, and readiness gates |
+
+## Product direction
+
+The intended operating model is an internal tool for fabrication labs, with production readiness
+rather than a demo as the objective. Fabricator workflow discovery and representative historical
+orders are acknowledged inputs to later gates; they are not silently replaced with assumptions.

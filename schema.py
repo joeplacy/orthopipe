@@ -66,7 +66,7 @@ DEFAULT_ZONE_LATTICE: dict[str, str] = {
 
 
 class FootRx(BaseModel):
-    mods: List[Mod] = []
+    mods: List[Mod] = Field(default_factory=list)
     fill: Optional[Fill] = None   # None => solid everywhere (current behavior)
 
 
@@ -80,6 +80,6 @@ class Prescription(BaseModel):
     order_id: str
     left: Optional[FootRx] = None
     right: Optional[FootRx] = None
-    shell: Shell = Shell()
+    shell: Shell = Field(default_factory=Shell)
     needs_manual: bool = False
-    ambiguities: List[str] = []
+    ambiguities: List[str] = Field(default_factory=list)

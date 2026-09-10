@@ -1,0 +1,9 @@
+{
+  "order_id": "EXAMPLE-001",
+  "side": "left",
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  }
+}
