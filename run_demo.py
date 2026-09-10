@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 from schema import Prescription
 from synthetic_foot import make_foot_scan
-from geometry import generate_orthotic
+from geometry import generate_orthotic, estimate_pressure
 
 # ---- 0. sample scans (stand-in for the Comb .obj exports) -------------------
 for side, seed in [("left", 11), ("right", 7)]:
@@ -88,3 +88,15 @@ for side, (solid, aligned, hf, top, mask, report) in results.items():
     fig.tight_layout()
     fig.savefig(f"{rx.order_id}_{side}_preview.png", dpi=110)
     print(f"preview -> {rx.order_id}_{side}_preview.png")
+
+    # plantar-pressure estimate heatmap (Winkler spring-bed) — same Agg preview path
+    p_kpa, _ = estimate_pressure(top, mask, hf, getattr(rx, side))
+    pfig, pax = plt.subplots(figsize=(5, 8))
+    pim = pax.imshow(np.where(mask, p_kpa, np.nan), origin="lower", cmap="inferno",
+                     extent=[hf.x0, hf.x0 + hf.nx * hf.cell, hf.y0, hf.y0 + hf.ny * hf.cell])
+    pfig.colorbar(pim, ax=pax, label="plantar pressure (kPa)")
+    pax.set_title(f"{rx.order_id} — {side.upper()} — peak {report['peak_pressure_kpa']} kPa")
+    pfig.tight_layout()
+    pfig.savefig(f"{rx.order_id}_{side}_pressure.png", dpi=110)
+    plt.close(pfig)
+    print(f"pressure -> {rx.order_id}_{side}_pressure.png")

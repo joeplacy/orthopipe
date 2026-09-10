@@ -7,9 +7,11 @@ Wraps geometry.generate_orthotic() behind a small web API + single-page UI:
 
 Run:  python app.py     (then open the forwarded port 8000 in the browser)
 """
+import hashlib
 import json
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import uvicorn
@@ -18,9 +20,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+import rx_parser
 from schema import FootRx, Shell
 from geometry import generate_orthotic
 from rx_parser import parse_prescription
+from intake import normalize_scan
 
 BASE = Path(__file__).parent
 UPLOADS = BASE / "uploads"
@@ -34,17 +38,76 @@ app = FastAPI(title="OrthoPipe Review")
 SCANS: dict[str, dict] = {}
 RESULTS: dict[str, dict] = {}
 
+AUDIT_LOG = OUTPUTS / "audit_log.jsonl"       # Device History Record (DHR), append-only
+COMPLAINTS_LOG = OUTPUTS / "complaints.jsonl"  # complaint file (820.198), append-only
+
+
+# --- append-only, hash-chained event log (FDA 21 CFR 820.35 recordkeeping) ---
+# JSONL now; maps 1:1 to SQLite when multi-user (echoing the store note above):
+#   an `events` table (event_type, ts_utc, prev_hash, record_hash, payload_json)
+#   and a `complaints` table keyed by result_id — the hash-chain columns port
+#   directly. Do NOT implement SQLite yet.
+
+def _sha256_file(path: str) -> str | None:
+    """sha256 of a file's bytes, or None if it can't be read."""
+    try:
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except OSError:
+        return None
+
+
+def _tail_hash(path: Path) -> str:
+    """record_hash of the last line (the chain head), or 'GENESIS' if none.
+    Pre-existing 8-key audit lines have no record_hash -> treated as GENESIS
+    predecessors, so old logs stay readable and the chain simply starts fresh."""
+    if not path.exists():
+        return "GENESIS"
+    last = None
+    with open(path, "rb") as f:
+        for line in f:
+            if line.strip():
+                last = line
+    if not last:
+        return "GENESIS"
+    try:
+        return json.loads(last).get("record_hash", "GENESIS")
+    except json.JSONDecodeError:
+        return "GENESIS"
+
+
+def _append_event(path: Path, event_type: str, payload: dict) -> dict:
+    """Append one immutable, hash-chained event and return the written record."""
+    rec = {"event_type": event_type,
+           "ts_utc": datetime.now(timezone.utc).isoformat(),
+           "prev_hash": _tail_hash(path), **payload}
+    rec["record_hash"] = hashlib.sha256(
+        json.dumps(rec, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    with open(path, "a") as f:
+        f.write(json.dumps(rec) + "\n")
+    return rec
+
 
 @app.post("/api/upload")
 async def upload_scan(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith((".obj", ".stl", ".ply")):
-        raise HTTPException(400, "Please upload a .obj, .stl, or .ply scan file")
+    if not file.filename.lower().endswith((".obj", ".stl", ".ply", ".usdz")):
+        raise HTTPException(400, "Please upload a .obj, .stl, .ply, or .usdz scan file")
     scan_id = uuid.uuid4().hex[:8]
     dest = UPLOADS / f"{scan_id}_{file.filename}"
     dest.write_bytes(await file.read())
-    SCANS[scan_id] = {"path": str(dest), "filename": file.filename,
-                      "uploaded_at": time.strftime("%Y-%m-%d %H:%M:%S")}
-    return {"scan_id": scan_id, "filename": file.filename}
+    # phone-scan intake: usdz->obj (if USD tooling present) + meters->mm scale check.
+    # Returns an already-normalized path; /api/generate needs no change.
+    try:
+        norm_path, warnings = normalize_scan(str(dest))
+    except ValueError as e:            # e.g. usdz without USD tooling -> guidance, HTTP 400
+        raise HTTPException(400, str(e))
+    SCANS[scan_id] = {"path": norm_path, "filename": file.filename,
+                      "uploaded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                      "warnings": warnings}
+    return {"scan_id": scan_id, "filename": file.filename, "warnings": warnings}
 
 
 class ParseRxRequest(BaseModel):
@@ -125,19 +188,123 @@ def approve(result_id: str):
     if not r:
         raise HTTPException(404, "Result not found")
     r["approved"] = True
-    r["approved_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
-    # append-only audit log — regulatory posture from day one
-    with open(OUTPUTS / "audit_log.jsonl", "a") as f:
-        f.write(json.dumps({k: r[k] for k in
-                            ("result_id", "order_id", "side", "rx", "shell",
-                             "rx_text", "report", "approved_at")}) + "\n")
+    r["approved_at"] = time.strftime("%Y-%m-%d %H:%M:%S")  # kept for the UI (local, naive)
+
+    # Full Device History Record: the whole scan -> Rx -> geometry -> validation
+    # -> approval chain, captured as one immutable, hash-chained event.
+    scan = r["scan"]
+    dhr = {
+        "result_id": result_id, "order_id": r["order_id"], "side": r["side"],
+        # scan identity
+        "scan": {"filename": scan["filename"], "path": scan["path"],
+                 "scan_sha256": _sha256_file(scan["path"])},
+        # prescription provenance
+        "rx_text": r["rx_text"], "rx": r["rx"],
+        # parser_model is best-effort: generate() takes a pre-parsed rx dict and
+        # never calls parse_prescription, so this records which model the parser
+        # stage uses, not necessarily the one that produced *this* rx.
+        # TODO: a caller-supplied provenance flag on GenerateRequest would make this exact.
+        "parser_model": rx_parser.MODEL,
+        # shell + applied-mod order
+        "shell": r["shell"], "mods_applied": r["report"].get("mods_applied", []),
+        # full validation report (pass, checks, volume_cm3, extents_mm, warnings, ...)
+        "report": r["report"],
+        # output STL identity
+        "stl": r["stl"], "stl_sha256": _sha256_file(r["stl"]),
+        # reviewer approval
+        "approved_at": r["approved_at"],
+        # TODO(820.198/Part 11): reviewer identity, signature, PII handling
+        "reviewer": None,
+    }
+    _append_event(AUDIT_LOG, "device_history_record", dhr)
     return {"ok": True, "download_url": f"/api/stl/{result_id}"}
+
+
+class ComplaintRequest(BaseModel):
+    narrative: str
+    category: str = "unspecified"
+    # TODO(820.198/Part 11): no PII handling / auth yet
+    reporter: str = "anonymous"
+
+
+@app.post("/api/complaint/{result_id}")
+def file_complaint(result_id: str, req: ComplaintRequest):
+    """Log a complaint against a device result (21 CFR 820.198 complaint file)."""
+    r = RESULTS.get(result_id)
+    if not r:
+        raise HTTPException(404, "Result not found")
+    # denormalize order_id/side so complaints tie back to the DHR even after the
+    # in-memory RESULTS store is lost on restart.
+    rec = _append_event(COMPLAINTS_LOG, "complaint",
+                        {"result_id": result_id, "order_id": r["order_id"],
+                         "side": r["side"], "narrative": req.narrative,
+                         "category": req.category, "reporter": req.reporter})
+    return {"ok": True, "complaint_id": rec["record_hash"][:12]}
+
+
+def _read_jsonl(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    out = []
+    with open(path) as f:
+        for line in f:
+            if line.strip():
+                try:
+                    out.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    return out
+
+
+@app.get("/api/complaints")
+def list_complaints():
+    """Read-only complaint file stream (no edit/delete — append-only record)."""
+    return _read_jsonl(COMPLAINTS_LOG)
+
+
+@app.get("/api/device_history/{result_id}")
+def device_history(result_id: str):
+    """Read-only Device History Record(s) for one result."""
+    return [rec for rec in _read_jsonl(AUDIT_LOG) if rec.get("result_id") == result_id]
 
 
 @app.get("/api/results")
 def list_results():
     return [{k: r[k] for k in ("result_id", "order_id", "side", "approved", "created_at")}
             for r in RESULTS.values()]
+
+
+# --- replay scorecard surface (read-only; populated by `replay.py --out outputs/replay`) ---
+REPLAY_DIR = OUTPUTS / "replay"
+
+
+def _find_scorecard(order_id: str) -> Path | None:
+    if not REPLAY_DIR.exists():
+        return None
+    hits = sorted(REPLAY_DIR.glob(f"{order_id}_*_scorecard.json"))
+    return hits[0] if hits else None
+
+
+@app.get("/api/replay/{order_id}")
+def get_replay(order_id: str):
+    """Return an order's geometric-diff scorecard + heatmap URL (read-only)."""
+    sc = _find_scorecard(order_id)
+    if sc is None:
+        raise HTTPException(404, "No replay scorecard for this order_id")
+    card = json.loads(sc.read_text())
+    return {"scorecard": card, "heatmap_url": f"/api/replay/{order_id}/heatmap"}
+
+
+@app.get("/api/replay/{order_id}/heatmap")
+def get_replay_heatmap(order_id: str):
+    """Serve the deviation heatmap PNG for an order (mirrors /api/stl FileResponse)."""
+    sc = _find_scorecard(order_id)
+    if sc is None:
+        raise HTTPException(404, "No replay scorecard for this order_id")
+    png = REPLAY_DIR / json.loads(sc.read_text()).get("heatmap_png", "")
+    if not png.exists():
+        raise HTTPException(404, "Heatmap not found")
+    return FileResponse(str(png), media_type="image/png", filename=png.name)
 
 
 app.mount("/", StaticFiles(directory=BASE / "static", html=True), name="static")

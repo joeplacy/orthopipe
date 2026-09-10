@@ -11,11 +11,11 @@ Requires ANTHROPIC_API_KEY in the environment.
 
 CLI check:  python rx_parser.py "Bilateral medial wedges, 1/4in heel lift right only"
 """
+import os
 import sys
 
-import anthropic
-
 from schema import Prescription
+from rx_backends import BACKENDS
 
 MODEL = "claude-opus-4-8"
 
@@ -32,6 +32,14 @@ Rules:
 - If a numeric value is not stated, omit it so the schema default applies —
   except heel_lift, where height_mm is required; if a lift is requested with
   no height, set needs_manual=true and record the ambiguity.
+- Variable-stiffness fill: emit `fill` (on the relevant foot's `left`/`right`)
+  ONLY when the text explicitly calls for variable stiffness — softer/firmer
+  zones, lattice, or infill (e.g. "softer heel", "firmer forefoot"). Otherwise
+  leave `fill` unset so the part stays solid. Families are solid|gyroid|diamond|
+  primitive; `density` is 0.0-1.0 where 1.0 = solid; zones are heel|midfoot|
+  forefoot|toe. On unclear, contradictory, or out-of-range fill requests, set
+  needs_manual=true and record the reason in `ambiguities`. Never invent fill
+  zones the text did not call for.
 - If any part of the prescription is unclear, contradictory, references an
   unsupported modification, or requests a value outside safe ranges
   (wedges 0-8 degrees, lifts 0-15mm, reliefs 0.5-4mm deep), do NOT guess:
@@ -41,26 +49,24 @@ Rules:
 """
 
 
-def parse_prescription(rx_text: str, order_id: str = "ORDER") -> Prescription:
+def parse_prescription(rx_text: str, order_id: str = "ORDER",
+                       backend: str | None = None) -> Prescription:
     """Parse free-text prescription into a validated Prescription.
 
-    Raises anthropic.APIError on API failures and pydantic.ValidationError if
+    Backend is selected by the `backend` kwarg, else the ORTHOPIPE_RX_BACKEND env
+    var, else "anthropic" (the default cloud path, unchanged). A local (Ollama)
+    backend keeps PHI on-machine. Fails loud on an unknown backend name (ValueError)
+    or an unavailable local backend (RuntimeError) — never silently falls back.
+
+    Raises anthropic.APIError on cloud API failures and pydantic.ValidationError if
     the response cannot be validated (the SDK retries schema mismatches).
     """
-    client = anthropic.Anthropic()
-    response = client.messages.parse(
-        model=MODEL,
-        max_tokens=16000,
-        system=SYSTEM_PROMPT,
-        messages=[{
-            "role": "user",
-            "content": f"Order ID: {order_id}\n\nPrescription text:\n{rx_text}",
-        }],
-        output_format=Prescription,
-    )
-    if response.stop_reason == "refusal":
-        raise RuntimeError("Model declined to process this prescription text")
-    rx = response.parsed_output
+    name = backend or os.environ.get("ORTHOPIPE_RX_BACKEND", "anthropic")
+    if name not in BACKENDS:
+        raise ValueError(f"unknown ORTHOPIPE_RX_BACKEND={name!r}; "
+                         f"expected one of {sorted(BACKENDS)}")
+    user = f"Order ID: {order_id}\n\nPrescription text:\n{rx_text}"
+    rx = BACKENDS[name](SYSTEM_PROMPT, user, Prescription, MODEL)
     rx.order_id = order_id  # authoritative — comes from the work order, not the model
     return rx
 

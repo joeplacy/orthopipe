@@ -1,0 +1,28 @@
+{
+  "order_id": "met_pad_both",
+  "left": {
+    "mods": [
+      {
+        "type": "met_pad",
+        "height_mm": 3.0
+      }
+    ],
+    "fill": null
+  },
+  "right": {
+    "mods": [
+      {
+        "type": "met_pad",
+        "height_mm": 3.0
+      }
+    ],
+    "fill": null
+  },
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": false,
+  "ambiguities": []
+}

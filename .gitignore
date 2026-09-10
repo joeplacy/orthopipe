@@ -1,8 +1,18 @@
 .venv/
 __pycache__/
 *.pyc
+.DS_Store
+.claude/
 uploads/
 outputs/
 *.stl
 *.obj
 DEMO-*_preview.png
+DEMO-*_pressure.png
+
+# landmark annotations may reference PHI-bearing scans; keep out of git
+annotations/
+landmark_calibration.json
+
+# ...but the canonical ICP template is a checked-in asset, not demo output
+!templates/right_foot_template.stl

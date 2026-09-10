@@ -1,0 +1,623 @@
+<title>OrthoPipe — Landscape & Strategy</title>
+<style>
+  :root{
+    --ground:#EEF2F5; --panel:#FFFFFF; --panel-2:#F5F8FA;
+    --ink:#131A21; --ink-2:#3A4854; --ink-3:#61707C;
+    --line:#D8E0E6; --line-2:#E7EDF1;
+    --accent:#0F766E; --accent-ink:#0B5952; --accent-wash:#DCEEEB;
+    --lo:#2563A8; --lo-wash:#DCE7F4;
+    --mid:#B5842A; --mid-wash:#F3E9D2;
+    --hi:#C63D2F; --hi-wash:#F5DED9;
+    --good:#1F7A55; --good-wash:#D8ECE1;
+    --shadow:0 1px 2px rgba(19,26,33,.06),0 6px 18px rgba(19,26,33,.06);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --maxw:1080px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0C1218; --panel:#131C24; --panel-2:#0F171E;
+      --ink:#E7EEF3; --ink-2:#AEBDC8; --ink-3:#7C8B96;
+      --line:#243039; --line-2:#1B242C;
+      --accent:#3FC9BC; --accent-ink:#8FE4DB; --accent-wash:#123029;
+      --lo:#6BA4E0; --lo-wash:#12253A;
+      --mid:#E0B85C; --mid-wash:#332918;
+      --hi:#F0806F; --hi-wash:#3A1E1A;
+      --good:#5FC796; --good-wash:#14301F;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#EEF2F5; --panel:#FFFFFF; --panel-2:#F5F8FA;
+    --ink:#131A21; --ink-2:#3A4854; --ink-3:#61707C;
+    --line:#D8E0E6; --line-2:#E7EDF1;
+    --accent:#0F766E; --accent-ink:#0B5952; --accent-wash:#DCEEEB;
+    --lo:#2563A8; --lo-wash:#DCE7F4; --mid:#B5842A; --mid-wash:#F3E9D2;
+    --hi:#C63D2F; --hi-wash:#F5DED9; --good:#1F7A55; --good-wash:#D8ECE1;
+    --shadow:0 1px 2px rgba(19,26,33,.06),0 6px 18px rgba(19,26,33,.06);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0C1218; --panel:#131C24; --panel-2:#0F171E;
+    --ink:#E7EEF3; --ink-2:#AEBDC8; --ink-3:#7C8B96;
+    --line:#243039; --line-2:#1B242C;
+    --accent:#3FC9BC; --accent-ink:#8FE4DB; --accent-wash:#123029;
+    --lo:#6BA4E0; --lo-wash:#12253A; --mid:#E0B85C; --mid-wash:#332918;
+    --hi:#F0806F; --hi-wash:#3A1E1A; --good:#5FC796; --good-wash:#14301F;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.28);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:var(--sans);font-size:16px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  section{padding:44px 0;border-top:1px solid var(--line-2)}
+  section:first-of-type{border-top:0}
+
+  h1,h2,h3{margin:0;line-height:1.12;letter-spacing:-.02em;text-wrap:balance;font-weight:800}
+  h2{font-size:clamp(24px,3.4vw,34px);margin-bottom:6px}
+  h3{font-size:19px;letter-spacing:-.01em}
+  p{margin:0 0 14px}
+  a{color:var(--accent-ink);text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:2px}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+  .eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent-ink)}
+  .lede{font-size:18px;color:var(--ink-2);max-width:68ch}
+  .muted{color:var(--ink-3)}
+  .mono{font-family:var(--mono)}
+
+  /* Hero */
+  header.hero{padding:64px 0 40px;border-top:0}
+  .kicker{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-wash)}
+  h1{font-size:clamp(34px,6vw,60px);letter-spacing:-.035em;margin-bottom:16px}
+  h1 .tint{color:var(--accent-ink)}
+  .hero .lede{font-size:clamp(17px,2.2vw,21px);max-width:70ch}
+  .meta{display:flex;flex-wrap:wrap;gap:22px;margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
+  .meta div{display:flex;flex-direction:column;gap:2px}
+  .meta .n{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:-.01em;
+    font-variant-numeric:tabular-nums;color:var(--ink)}
+  .meta .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+
+  /* Verdict box */
+  .verdict{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:14px;padding:26px 28px;box-shadow:var(--shadow)}
+  .verdict h2{font-size:22px}
+  .verdict p:last-child{margin-bottom:0}
+  .pull{color:var(--accent-ink);font-weight:700}
+
+  /* generic panel + grid */
+  .grid{display:grid;gap:16px}
+  @media(min-width:720px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:var(--shadow)}
+  .card h3{margin-bottom:6px}
+  .card .imp{font-size:14.5px;color:var(--ink-2);margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .card .imp b{color:var(--ink)}
+
+  /* chips */
+  .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+    font-weight:600;letter-spacing:.03em;padding:3px 9px;border-radius:999px;white-space:nowrap;
+    border:1px solid transparent}
+  .c-accent{background:var(--accent-wash);color:var(--accent-ink)}
+  .c-lo{background:var(--lo-wash);color:var(--lo)}
+  .c-mid{background:var(--mid-wash);color:var(--mid)}
+  .c-hi{background:var(--hi-wash);color:var(--hi)}
+  .c-good{background:var(--good-wash);color:var(--good)}
+  .c-line{background:transparent;border-color:var(--line);color:var(--ink-3)}
+
+  /* tables */
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:640px;background:var(--panel);font-size:14.5px}
+  th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line-2);vertical-align:top}
+  thead th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-3);background:var(--panel-2);position:sticky;top:0;font-weight:600}
+  tbody tr:last-child td{border-bottom:0}
+  td .nm{font-weight:700;color:var(--ink)}
+  td.mono,.tnum{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* positioning map */
+  .mapwrap{overflow-x:auto}
+  .map{position:relative;min-width:640px;height:460px;background:
+    linear-gradient(120deg,var(--lo-wash),transparent 55%),
+    var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
+    margin-top:10px}
+  .map .axis{position:absolute;font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .ax-x{bottom:10px;left:50%;transform:translateX(-50%)}
+  .ax-y{top:50%;left:12px;transform:translateY(-50%) rotate(-90deg);transform-origin:left}
+  .ax-end{position:absolute;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.04em}
+  .gridline{position:absolute;background:var(--line-2)}
+  .node{position:absolute;transform:translate(-50%,-50%);width:max-content;max-width:150px}
+  .node .pin{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:700;
+    padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);
+    box-shadow:var(--shadow);white-space:nowrap}
+  .node.us .pin{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .node .sub{display:block;font-size:11px;color:var(--ink-3);margin-top:3px;line-height:1.3}
+
+  /* matrix */
+  .matrix{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:6px;margin-top:8px;min-width:560px}
+  .mxwrap{overflow-x:auto}
+  .mcell{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;min-height:88px}
+  .mhead{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-3);display:flex;align-items:center;justify-content:center;padding:6px;text-align:center}
+  .mrow{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+    writing-mode:vertical-rl;transform:rotate(180deg);display:flex;align-items:center;justify-content:center}
+  .mtok{display:block;font-family:var(--mono);font-size:12px;font-weight:600;padding:5px 8px;border-radius:6px;
+    margin-bottom:5px;line-height:1.25}
+  .mtok:last-child{margin-bottom:0}
+  .t-win{background:var(--good-wash);color:var(--good)}
+  .t-bet{background:var(--hi-wash);color:var(--hi)}
+  .t-fill{background:var(--lo-wash);color:var(--lo)}
+  .t-hold{background:var(--panel-2);color:var(--ink-3)}
+
+  /* recommendation list */
+  .rec{display:grid;grid-template-columns:44px 1fr;gap:16px;padding:18px 0;border-top:1px solid var(--line-2)}
+  .rec:first-child{border-top:0}
+  .rec .rank{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--accent-ink);
+    font-variant-numeric:tabular-nums;line-height:1.2}
+  .rec h3{margin-bottom:4px}
+  .rec .tags{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 0}
+  .rec p{margin-bottom:0}
+
+  /* callout */
+  .note{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;font-size:14.5px}
+  .note.warn{border-left:4px solid var(--hi)}
+  .note.reg{border-left:4px solid var(--lo)}
+  ul.tight{margin:8px 0 0;padding-left:20px}
+  ul.tight li{margin-bottom:7px}
+  ul.tight li:last-child{margin-bottom:0}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0 0;font-size:13px;color:var(--ink-2)}
+  .cite{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+
+  .toolbar{position:fixed;top:14px;right:14px;z-index:20}
+  .toolbar button{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+    background:var(--panel);color:var(--ink-2);border:1px solid var(--line);border-radius:999px;
+    padding:7px 13px;cursor:pointer;box-shadow:var(--shadow)}
+  .srcgrid{columns:2;column-gap:26px}
+  @media(max-width:640px){.srcgrid{columns:1}}
+  .srcgrid .cite{break-inside:avoid;margin-bottom:8px;display:block}
+  footer{padding:36px 0 60px;color:var(--ink-3);font-size:13px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="toolbar"><button id="tt" aria-label="Toggle light or dark theme">◐ Theme</button></div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker"><span class="dot"></span>
+      <span class="eyebrow">OrthoPipe · Competitive &amp; Technical Intelligence</span></div>
+    <h1>The market already automates the scan.<br><span class="tint">Your moat is the sentence.</span></h1>
+    <p class="lede">A verified landscape of automated custom foot-orthotic manufacturing — competitors, adoptable
+      open-source, the academic findings that should reshape the geometry engine, US regulatory footing, and a
+      ranked plan to turn a working prototype into a defensible product.</p>
+    <div class="meta">
+      <div><span class="n">2</span><span class="k">research passes</span></div>
+      <div><span class="n">46</span><span class="k">sources fetched</span></div>
+      <div><span class="n">330+</span><span class="k">claims extracted</span></div>
+      <div><span class="n">34</span><span class="k">findings verified</span></div>
+      <div><span class="n">3-vote</span><span class="k">adversarial check</span></div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="verdict">
+      <div class="eyebrow" style="margin-bottom:8px">The strategic read</div>
+      <h2>Your core bet is validated — but the wedge is narrower and sharper than “automation.”</h2>
+      <p>Scan&nbsp;→&nbsp;print automation is <b>table stakes</b>: Materialise Phits, Aetrex/SOLS, HP Arize, and
+        Denmark’s Sequence all ship it, some with pressure-plate fusion and “reorder in three clicks.” Competing on
+        “we automate design” walks straight into incumbents.</p>
+      <p>The genuinely defensible combination — which <span class="pull">no competitor pairs together</span> — is:
+        <b>(1)</b> LLM-parsed free-text prescriptions (every rival uses fixed forms), <b>(2)</b> a deterministic,
+        range-clamped, human-approved geometry engine with a full audit trail, and <b>(3)</b> per-zone
+        variable-stiffness lattice interiors driven by that prescription — which the newest peer-reviewed work shows
+        cut peak plantar pressure <b>36–42%</b> versus uniform infill.</p>
+      <p style="margin-bottom:0">Reframe the pitch from “we automate insole design” to <span class="pull">“we turn a
+        prescription sentence into a validated, pressure-optimized, printable part with a traceable record from words
+        to STL.”</span> That is a claim about <em>trust and clinical intent</em>, not just throughput — and it is the
+        one thing the incumbents’ form-driven, black-box pipelines can’t easily copy.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">01 · Competitive landscape</div>
+    <h2>Where everyone sits</h2>
+    <p class="lede">Two axes decide the field: how prescriptions <em>enter</em> the system (manual form → AI /
+      free-text), and who <em>owns the geometry</em> (clinician hand-CAD → fully automated). OrthoPipe’s open water is
+      the top-right — automated geometry <em>plus</em> language-native intake — with auditability as the differentiator
+      the axes don’t show.</p>
+
+    <div class="mapwrap">
+      <div class="map" role="img" aria-label="Positioning map: prescription intake automation on the horizontal axis, geometry automation on the vertical axis.">
+        <div class="gridline" style="left:50%;top:16px;bottom:34px;width:1px"></div>
+        <div class="gridline" style="top:50%;left:26px;right:16px;height:1px"></div>
+        <div class="axis ax-x">Prescription intake →</div>
+        <div class="axis ax-y">Geometry automation →</div>
+        <div class="ax-end" style="left:30px;top:8px">fully automated · manual intake</div>
+        <div class="ax-end" style="right:16px;top:8px;text-align:right">automated · language-native</div>
+        <div class="ax-end" style="left:30px;bottom:30px">hand-CAD · manual form</div>
+        <div class="ax-end" style="right:16px;bottom:30px;text-align:right">outsourced · scanner-driven</div>
+
+        <!-- x: left(manual form) → right(AI/free-text); y: bottom(manual CAD) → top(automated) -->
+        <div class="node" style="left:20%;top:64%"><span class="pin">Wiky</span>
+          <span class="sub">cloud form Rx · template/manual CAD</span></div>
+        <div class="node" style="left:16%;top:44%"><span class="pin">Gensole</span>
+          <span class="sub">manual scan-morph · no Rx corrections</span></div>
+        <div class="node" style="left:44%;top:26%"><span class="pin">Materialise Phits</span>
+          <span class="sub">pressure-plate fusion · multi-density</span></div>
+        <div class="node" style="left:40%;top:74%"><span class="pin">Aetrex / SOLS</span>
+          <span class="sub">Albert scanner · outsourced print</span></div>
+        <div class="node" style="left:36%;top:88%"><span class="pin">HP Arize</span>
+          <span class="sub">scan → mail to HP → mail back</span></div>
+        <div class="node" style="left:62%;top:34%"><span class="pin">Sequence (DK)</span>
+          <span class="sub">ML shore-hardness from scan + gait</span></div>
+        <div class="node us" style="left:82%;top:16%"><span class="pin">OrthoPipe →</span>
+          <span class="sub">LLM Rx · automated + audited lattice</span></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="chip c-accent">target</span> language-native intake is empty territory</span>
+      <span><span class="chip c-line">note</span> Sequence is the closest AI rival — data-driven, not intent-driven</span>
+    </div>
+
+    <h3 style="margin:30px 0 4px">The players, verified</h3>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Player</th><th>What it is</th><th>Intake</th><th>Pricing (verified)</th><th>Gap you exploit</th></tr></thead>
+        <tbody>
+          <tr><td><span class="nm">Wiky</span><br><span class="cite">wikyapps.com</span></td>
+            <td>Cloud podiatry platform: scan → design → manufacturing hand-off. The named target.</td>
+            <td>4-step <b>fill-out form</b>; no AI/NLP anywhere in its marketing</td>
+            <td class="mono">pay-per-scan<br>(undisclosed)</td>
+            <td>No free-text/LLM Rx; design step is template/manual CAD</td></tr>
+          <tr><td><span class="nm">Materialise Phits</span></td>
+            <td>Footscan pressure plates + 3D scan drive <b>multi-density</b> insoles; mature Class IIa (EU) product.</td>
+            <td>Form + pressure data; SAM iOS scan is an <em>adjunct</em> (plate still required)</td>
+            <td class="mono">enterprise<br>(undisclosed)</td>
+            <td>Hardware-heavy; no language intake; closed design logic</td></tr>
+          <tr><td><span class="nm">Aetrex / SOLS</span></td>
+            <td>B2B scan-to-print: Albert 2 Pro → EOS printing, 2–3 wk turnaround. Acquired SOLS 2017.</td>
+            <td>Scanner-driven; clinician has no local geometry control</td>
+            <td class="mono">B2B service</td>
+            <td>Outsourced &amp; opaque; no in-clinic iteration or audit trail</td></tr>
+          <tr><td><span class="nm">HP Arize</span></td>
+            <td>Fully outsourced: in-office scan → submit to HP → fabricated inserts mailed back.</td>
+            <td>Scan only; no local design or print</td>
+            <td class="mono">per-device</td>
+            <td>Zero clinician control; a pilot RCT favored <em>traditional</em> at 8 wks</td></tr>
+          <tr><td><span class="nm">Sequence</span><br><span class="cite">Denmark</span></td>
+            <td><b>The closest AI rival:</b> ML on 20,000+ measurements predicts target shore hardness &amp; shape from scan + gait, 10 pressure zones.</td>
+            <td>Scan + dynamic pressure → ML prediction</td>
+            <td class="mono">commercial</td>
+            <td>Data-driven, not <em>intent</em>-driven; no clinician-language channel</td></tr>
+          <tr><td><span class="nm">Gensole</span><br><span class="cite">Gyrobot, UK</span></td>
+            <td>Closest free tool: browser insole designer, morphs upper to scan (“Solemorph”), density zones via slicer.</td>
+            <td>Manual; <b>explicitly no Rx corrections</b> — deform the scan by hand first</td>
+            <td class="mono">free, non-commercial<br>2016-era, decaying</td>
+            <td>Its own docs admit the exact gap your Rx engine fills</td></tr>
+          <tr><td><span class="nm">OrthoCAD</span><br><span class="cite">Vertex Orthopedic</span></td>
+            <td>Traditional orthotic CAD software (design workstation).</td>
+            <td>Manual CAD</td>
+            <td class="mono">$1,500/yr start<br>up to $12,999 perpetual</td>
+            <td>Pure manual CAD; the price floor for “software-only” positioning</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">02 · Open-source head start</div>
+    <h2>Adopt these — with eyes open on the license</h2>
+    <p class="lede">The biggest time savers are real, but the license split matters: you plan to ship a product, so
+      permissive (MIT / Apache) is drop-in, GPL is <em>server-side-only</em> safe, and “unknown” is a stop sign until
+      the <span class="mono">LICENSE</span> file is read directly.</p>
+
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Component</th><th>License</th><th>Does</th><th>Verdict for OrthoPipe</th></tr></thead>
+        <tbody>
+          <tr><td><span class="nm">PyMeshLab</span><br><span class="cite">cnr-isti-vclab</span></td>
+            <td><span class="chip c-mid">GPL-3.0</span></td>
+            <td>Python bindings to MeshLab repair: close-holes, decimate, smooth.</td>
+            <td><b>Adopt now.</b> Already in your <span class="mono">requirements.txt</span> but not yet called. Real Comb scans are hole-riddled — this unblocks real data. Server-side use avoids the copyleft trigger (GPLv3 has no network clause).</td></tr>
+          <tr><td><span class="nm">ampscan</span><br><span class="cite">abel-research</span></td>
+            <td><span class="chip c-good">MIT</span></td>
+            <td>Purpose-built P&amp;O scan analysis; ICP rigid alignment (point-to-plane / SVD).</td>
+            <td><b>Vendor &amp; adopt.</b> ICP gives you template-to-scan registration far more robust than PCA canonical alignment. Repo is dormant since 2023 → copy the module in rather than depend on releases.</td></tr>
+          <tr><td><span class="nm">CadQuery</span></td>
+            <td><span class="chip c-good">Apache-2.0</span></td>
+            <td>Parametric B-rep CAD on OCCT; exports STEP/DXF/STL/AMF/<b>3MF</b>.</td>
+            <td><b>Adopt for edges the heightfield can’t express</b> — crisp rearfoot posts, shell trims — and for 3MF export into the slicer path. Safest license in the stack.</td></tr>
+          <tr><td><span class="nm">microgen</span><br><span class="cite">3MAH</span></td>
+            <td><span class="chip c-mid">GPL-3.0</span></td>
+            <td>TPMS lattices (gyroid, Diamond, Primitive, Fischer-Koch) via SDF + marching cubes; CAD-optional in 2.0.</td>
+            <td><b>Strong candidate, server-side.</b> Matches the zone→lattice research exactly (see §3). Pulls VTK/gmsh; keep behind your API so GPL stays server-side.</td></tr>
+          <tr><td><span class="nm">Scaffolder / PyScaffolder</span><br><span class="cite">nodtem66</span></td>
+            <td><span class="chip c-hi">unverified</span></td>
+            <td>Mesh → TPMS gyroid; pip-installable bindings.</td>
+            <td><b>Hold.</b> The claimed MIT license failed verification (refuted 0-3) and there are <b>no macOS wheels</b>. Read its LICENSE directly before touching; otherwise prefer microgen or a from-scratch SDF.</td></tr>
+          <tr><td><span class="nm">trimesh SDF lattice</span><br><span class="cite">build-your-own</span></td>
+            <td><span class="chip c-good">yours</span></td>
+            <td>Gyroid/Diamond/Primitive as analytic implicit fields, meshed in your existing stack.</td>
+            <td><b>The clean long-term play.</b> ~150 lines, no license entanglement, total control over per-zone gradients. Use microgen to prototype, then internalize.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <span><span class="chip c-good">MIT / Apache</span> drop-in</span>
+      <span><span class="chip c-mid">GPL-3.0</span> server-side only</span>
+      <span><span class="chip c-hi">unverified</span> read LICENSE first</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">03 · Academic findings that should change the engine</div>
+    <h2>What the evidence says to build</h2>
+    <p class="lede">Your current engine is a heightfield shell with a flat bottom. The literature points somewhere
+      specific: a shell wrapping a <em>zoned, variable-stiffness lattice interior</em> — and it warns against a few
+      assumptions worth un-learning early.</p>
+
+    <div class="grid g2">
+      <div class="card"><span class="chip c-good">build this</span>
+        <h3 style="margin-top:10px">Zoned lattices beat uniform infill — measurably</h3>
+        <p>A partition-infilled TPMS insole cut peak plantar pressure <b>~36% (static)</b> and <b>~42% (dynamic gait)</b>
+          versus a uniform gyroid insole, with 30–37% lower mean pressure in gait.</p>
+        <div class="imp"><b>Implication:</b> the single biggest product lever. Move from “shell + flat bottom” to
+          “shell + per-zone lattice.” This is the differentiator, and it’s backed by hard numbers.</div>
+      </div>
+
+      <div class="card"><span class="chip c-good">default map</span>
+        <h3 style="margin-top:10px">A concrete zone → lattice mapping</h3>
+        <p>Stiffness ranks <b>Diamond &gt; Gyroid &gt; Primitive</b> at equal parameters. The paper assigns soft
+          <b>Primitive to the heel</b> (deform, spread contact), <b>Gyroid to the forefoot</b>, and stiff
+          <b>Diamond to toe + midfoot</b> (load-bearing).</p>
+        <div class="imp"><b>Implication:</b> bake this as the default per-zone map in <span class="mono">apply_mods</span>;
+          let the Rx nudge it. You inherit a validated starting point instead of guessing.</div>
+      </div>
+
+      <div class="card"><span class="chip c-mid">design rule</span>
+        <h3 style="margin-top:10px">Blend stiffness smoothly, don’t step it</h3>
+        <p>Graded TPU gyroids last longest under fatigue with <b>moderate, smooth gradients</b>; abrupt stiffness jumps
+          between zones degrade fatigue life (cushioning study — extrapolated to insoles).</p>
+        <div class="imp"><b>Implication:</b> interpolate lattice density across Rx zone boundaries. Sharp zone edges are
+          a durability failure mode — the same instinct as your existing min-thickness clamp.</div>
+      </div>
+
+      <div class="card"><span class="chip c-mid">don’t hardcode</span>
+        <h3 style="margin-top:10px">Gyroid isn’t automatically best</h3>
+        <p>In TPU specimens, <b>honeycomb</b> gave the highest compression load at 50% strain and the most energy
+          absorption; <b>gyroid was the lowest</b>.</p>
+        <div class="imp"><b>Implication:</b> make lattice <em>family</em> a parameter in the schema, not a hardcoded
+          gyroid. Different zones and indications want different cells.</div>
+      </div>
+
+      <div class="card"><span class="chip c-hi">reality check</span>
+        <h3 style="margin-top:10px">Bench stiffness ≠ in-gait pressure</h3>
+        <p>Honeycomb vs gyroid at 20% infill showed <b>no significant</b> in-shoe pressure difference vs no insole in
+          one walking study; a separate n=21 pilot saw <b>increased</b> metatarsal pressure and no FFI gain.</p>
+        <div class="imp"><b>Implication:</b> geometric “validation pass” isn’t clinical proof. Add a pressure-based
+          check (simulated or plate-fused) before claiming efficacy — and it becomes a review-UI edge over Phits.</div>
+      </div>
+
+      <div class="card"><span class="chip c-hi">positioning</span>
+        <h3 style="margin-top:10px">“3D-printed” is not automatically better</h3>
+        <p>A pilot RCT favored <b>traditionally fabricated</b> orthoses over HP Arize at 8 weeks (PROMIS function
+          49.0 vs 41.9). A review agrees 3D-printed <em>can</em> win on fit/comfort but evidence is thin.</p>
+        <div class="imp"><b>Implication:</b> don’t sell “3D-printed = superior.” Compete on speed, cost, traceability,
+          and pressure-optimization. Let the audit trail and validation carry the credibility.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">04 · US regulatory footing</div>
+    <h2>Exempt, but not unregulated</h2>
+    <p class="lede">Good news up front: custom foot orthotics are generally Class I and 510(k)-exempt, so there’s no
+      premarket submission. The nuance is where new founders trip.</p>
+
+    <div class="grid g2">
+      <div class="note reg">
+        <h3 style="margin-bottom:8px">What holds</h3>
+        <ul class="tight">
+          <li><b>510(k)-exempt, Class I.</b> No premarket notification for the device itself.</li>
+          <li><b>GMP-lite.</b> Exempt from most of 21 CFR 820 <em>except</em> recordkeeping &amp; complaint files
+            (§820.35). Your append-only audit log is already the right instinct — extend it to complaint handling.</li>
+          <li><b>You are “patient-matched,” not “custom.”</b> FDA treats scan-fit devices made within cleared specs as
+            patient-matched → normal (exempt) path, <em>not</em> the Custom Device Exemption.</li>
+        </ul>
+      </div>
+      <div class="note warn">
+        <h3 style="margin-bottom:8px">Where it bites</h3>
+        <ul class="tight">
+          <li><b>Don’t lean on the Custom Device Exemption.</b> §520(b) caps it at <b>5 units/yr per device type</b> —
+            useless for volume.</li>
+          <li><b>Central fabrication = you’re a manufacturer.</b> Registration + GMP-lite + MDR reporting apply. Only
+            dispensing-only retail O&amp;P is registration-exempt (§807.65(i)) — that isn’t you.</li>
+          <li><b>Confirm the exact product code.</b> §890.3025 (accessories) does <em>not</em> classify a foot orthosis;
+            the real code is a shoe-insert / arch-support classification. Nail this before any claims.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <h3 style="margin-bottom:8px">The PHI angle on your Rx parser</h3>
+      <p style="margin-bottom:0">Prescriptions can carry protected health information. Sending them to a cloud LLM raises
+        a privacy/BAA question. Two mitigations, both verified viable: sign a <b>BAA</b> for the Claude API, and/or ship
+        a <b>local-LLM fallback</b> — a local Llama-70B extracted explicit clinical features from free-text notes at
+        <b>95–100% sensitivity</b>, so on-prem parsing is realistic when a site forbids cloud calls.</p>
+    </div>
+    <p class="cite" style="margin-top:14px">Not legal advice. Confirm the device’s FDA product code and talk to a
+      regulatory consultant before market entry — these are the load-bearing items, and the exact classification is the
+      one open question the research couldn’t close.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">05 · The plan</div>
+    <h2>Head-start moves, ranked by impact ÷ effort</h2>
+    <p class="lede">Four quick wins that de-risk real data and the regulatory story, three big bets that build the moat,
+      and two positioning moves. The matrix first, then the detail.</p>
+
+    <div class="mxwrap">
+      <div class="matrix" role="img" aria-label="Effort versus impact matrix of recommendations.">
+        <div></div>
+        <div class="mhead">Low effort</div><div class="mhead">Med effort</div><div class="mhead">High effort</div>
+
+        <div class="mrow">High impact</div>
+        <div class="mcell"><span class="mtok t-win">1 · PyMeshLab cleanup</span></div>
+        <div class="mcell"><span class="mtok t-win">6 · Lattice family in schema</span></div>
+        <div class="mcell"><span class="mtok t-bet">5 · Per-zone lattice interior</span><span class="mtok t-bet">7 · Pressure validation</span></div>
+
+        <div class="mrow">Med impact</div>
+        <div class="mcell"><span class="mtok t-win">2 · ICP alignment (ampscan)</span><span class="mtok t-win">3 · Audit + complaint log</span></div>
+        <div class="mcell"><span class="mtok t-fill">4 · Local-LLM + BAA</span><span class="mtok t-fill">8 · Phone-scan-only intake</span></div>
+        <div class="mcell"><span class="mtok t-hold">—</span></div>
+
+        <div class="mrow">Positioning</div>
+        <div class="mcell"><span class="mtok t-fill">9 · Own the provenance story</span></div>
+        <div class="mcell"><span class="mtok t-hold">—</span></div>
+        <div class="mcell"><span class="mtok t-hold">—</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top:26px">
+      <div class="rec"><div class="rank">1</div><div>
+        <h3>Wire PyMeshLab into <span class="mono">clean_scan</span> now</h3>
+        <p>It’s already a dependency but unused. Real scanner exports are hole-riddled; close-holes + decimate + smooth
+          is the single biggest blocker between you and real de-identified data. Ship it this week.</p>
+        <div class="tags"><span class="chip c-good">effort: low</span><span class="chip c-hi">impact: high</span><span class="chip c-accent">unblocks real scans</span></div>
+      </div></div>
+
+      <div class="rec"><div class="rank">2</div><div>
+        <h3>Adopt ICP alignment from ampscan</h3>
+        <p>Replace/augment PCA canonical alignment with iterative closest point (MIT-licensed, vendor the module).
+          More robust registration means your landmark heuristics land on real feet, not just synthetic ones.</p>
+        <div class="tags"><span class="chip c-good">effort: low</span><span class="chip c-mid">impact: med-high</span><span class="chip c-good">MIT</span></div>
+      </div></div>
+
+      <div class="rec"><div class="rank">3</div><div>
+        <h3>Formalize the audit + complaint record to §820.35</h3>
+        <p>You already log approvals append-only. Extend it to complaint handling and device-history records — the two
+          things Class-I-exempt manufacturers still owe. Cheap now, and it doubles as the trust story.</p>
+        <div class="tags"><span class="chip c-good">effort: low</span><span class="chip c-mid">impact: med</span><span class="chip c-accent">regulatory moat</span></div>
+      </div></div>
+
+      <div class="rec"><div class="rank">4</div><div>
+        <h3>Add a local-LLM fallback + pursue a Claude BAA</h3>
+        <p>De-risk the one AI dependency legally. A BAA covers cloud parsing of PHI; a local Llama-70B fallback (proven
+          95–100% sensitivity on explicit feature extraction) covers sites that forbid cloud calls entirely.</p>
+        <div class="tags"><span class="chip c-mid">effort: med</span><span class="chip c-mid">impact: med</span><span class="chip c-accent">PHI de-risk</span></div>
+      </div></div>
+
+      <div class="rec"><div class="rank">5</div><div>
+        <h3>Build the per-zone variable-stiffness lattice interior</h3>
+        <p><b>The product.</b> Shell → shell + zoned lattice, using the validated Primitive-heel / Gyroid-forefoot /
+          Diamond-toe-midfoot map with smooth gradient blending. Prototype with microgen (GPL, server-side), then
+          internalize as a trimesh SDF. This is the 36–42% pressure-reduction claim, made real.</p>
+        <div class="tags"><span class="chip c-hi">effort: high</span><span class="chip c-hi">impact: high</span><span class="chip c-accent">core differentiator</span></div>
+      </div></div>
+
+      <div class="rec"><div class="rank">6</div><div>
+        <h3>Surface lattice family + density in the Rx schema</h3>
+        <p>Extend your schema-as-contract so the prescription can drive per-zone stiffness — not a hardcoded gyroid.
+          Small change, big leverage: it’s what lets the LLM Rx actually reach the geometry the literature calls for.</p>
+        <div class="tags"><span class="chip c-mid">effort: med</span><span class="chip c-hi">impact: high</span><span class="chip c-accent">extends your moat</span></div>
+      </div></div>
+
+      <div class="rec"><div class="rank">7</div><div>
+        <h3>Add pressure-based validation</h3>
+        <p>Move “validation pass” from geometric (watertight, dimensions) to clinical (a plantar-pressure estimate,
+          simulated or plate-fused). Closes the bench≠gait gap the literature warns about — and becomes a review-station
+          feature Phits charges enterprise money for.</p>
+        <div class="tags"><span class="chip c-hi">effort: high</span><span class="chip c-hi">impact: high</span><span class="chip c-accent">credibility</span></div>
+      </div></div>
+
+      <div class="rec"><div class="rank">8</div><div>
+        <h3>Ship a phone-scan-only intake path</h3>
+        <p>COMB and Materialise SAM prove TrueDepth-only capture works. A phone + neutral-position guide removes the
+          scanner-hardware lock-in Aetrex and HP impose — lowering the barrier for small clinics you can win first.</p>
+        <div class="tags"><span class="chip c-mid">effort: med</span><span class="chip c-mid">impact: med</span><span class="chip c-lo">go-to-market</span></div>
+      </div></div>
+
+      <div class="rec"><div class="rank">9</div><div>
+        <h3>Own the provenance story as the brand</h3>
+        <p>“Every part traceable from prescription sentence to STL.” No competitor pairs LLM-parsed Rx with a full
+          audit trail. It’s nearly free — you’ve already built the pieces — and it’s the positioning the incumbents’
+          black boxes can’t answer.</p>
+        <div class="tags"><span class="chip c-good">effort: low</span><span class="chip c-mid">impact: med</span><span class="chip c-lo">positioning</span></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Method &amp; open questions</div>
+    <h2 style="font-size:24px">How this was built — and what’s still open</h2>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="note">
+        <p style="margin-bottom:8px"><b>Method.</b> Two fan-out research passes: parallel web search across five angles,
+          source fetching &amp; claim extraction, then <b>3-vote adversarial verification</b> (a claim survives only if it
+          isn’t refuted). 34 findings cleared the bar; every competitor, license, number, and regulation here passed.
+          Claims that failed — e.g. a competitor’s export formats, an unverifiable scanner-ecosystem detail — were dropped.</p>
+        <p style="margin-bottom:0"><b>Confidence.</b> Competitor facts rest on vendor pages corroborated by App Store /
+          trade press — solid for scope, but “three clicks” and self-reported scan counts are vendor best-case. Academic
+          numbers are from the cited papers directly.</p>
+      </div>
+      <div class="note warn">
+        <p style="margin-bottom:8px"><b>Still open — verify before betting the company:</b></p>
+        <ul class="tight">
+          <li>The <b>exact FDA product code</b> for your device (drives the whole regulatory analysis).</li>
+          <li><b>Scaffolder’s real license</b> — read the LICENSE file before adopting.</li>
+          <li>Whether <b>any competitor beyond Wiky</b> ships free-text Rx — confirmed absent only for Wiky.</li>
+          <li>Quantitative <b>lattice-density → shore-hardness</b> mapping in your specific TPU — validate on printed coupons.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="margin:26px 0 10px;font-size:15px" class="mono">Key sources</h3>
+    <div class="srcgrid">
+      <span class="cite">Frontiers Bioeng. 2026 — partition-infill TPMS · 10.3389/fbioe.2026.1820362</span>
+      <span class="cite">Mech. Adv. Mater. Struct. 2025 — graded TPU gyroids · 10.1080/15376494.2025.2530146</span>
+      <span class="cite">Foot &amp; Ankle Ortho. 2026 — traditional vs HP Arize RCT · 10.1177/24730114251413246</span>
+      <span class="cite">Preprints 2025 — TPU infill compression · 10.20944/preprints202503.0894.v1</span>
+      <span class="cite">Sequence ML pipeline · 10.1177/11795972251371476</span>
+      <span class="cite">Local-LLM clinical extraction · 10.1101/2023.12.07.23299648</span>
+      <span class="cite">wikyapps.com/podiatry-wiky-solution</span>
+      <span class="cite">materialise.com/en/healthcare/phits-suite</span>
+      <span class="cite">aetrexb2b.com/pages/3d-printing · gensole.com</span>
+      <span class="cite">github: abel-research/ampscan · 3MAH/microgen · cnr-isti-vclab/PyMeshLab · cadquery/cadquery</span>
+      <span class="cite">structure.io — automatic foot landmark detection SDK 3.5.0</span>
+      <span class="cite">FDA: 21 CFR 890.3025 · §807.65(i) · custom device exemption §520(b)</span>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap">
+  OrthoPipe landscape &amp; strategy · compiled from adversarially-verified research · figures reflect sources as of July 2026 and are decision inputs, not a substitute for legal or clinical review.
+</div></footer>
+
+<script>
+  (function(){
+    var btn=document.getElementById('tt');
+    function cur(){var a=document.documentElement.getAttribute('data-theme');
+      if(a)return a;return matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
+    btn.addEventListener('click',function(){
+      var n=cur()==='dark'?'light':'dark';
+      document.documentElement.setAttribute('data-theme',n);
+    });
+  })();
+</script>

@@ -1,0 +1,37 @@
+{
+  "order_id": "fill_soft_heel",
+  "left": {
+    "mods": [
+      {
+        "type": "medial_wedge",
+        "degrees": 4.0
+      }
+    ],
+    "fill": {
+      "heel": {
+        "family": "gyroid",
+        "density": 0.3
+      },
+      "midfoot": {
+        "family": "solid",
+        "density": 1.0
+      },
+      "forefoot": {
+        "family": "solid",
+        "density": 1.0
+      },
+      "toe": {
+        "family": "solid",
+        "density": 1.0
+      }
+    }
+  },
+  "right": null,
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": false,
+  "ambiguities": []
+}

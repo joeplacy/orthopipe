@@ -7,6 +7,11 @@ from pydantic import BaseModel, Field
 
 Landmark = Literal["base_5th_met", "met_heads", "heel_center", "arch_apex", "hallux"]
 
+# Per-zone lattice/fill (optional; defaults reproduce today's fully-solid part).
+# `Zone` names are anatomical bands and are DISTINCT from `Landmark` above.
+LatticeFamily = Literal["solid", "gyroid", "diamond", "primitive"]
+Zone = Literal["heel", "midfoot", "forefoot", "toe"]
+
 
 class MedialWedge(BaseModel):
     type: Literal["medial_wedge"] = "medial_wedge"
@@ -38,8 +43,31 @@ class MetPad(BaseModel):
 Mod = MedialWedge | LateralWedge | HeelLift | Relief | MetPad
 
 
+class ZoneFill(BaseModel):
+    family: LatticeFamily = "solid"
+    density: float = Field(1.0, ge=0.0, le=1.0)   # 1.0 == fully solid
+
+
+class Fill(BaseModel):
+    """Per-zone lattice/fill. Default (all-solid) reproduces current geometry."""
+    heel: ZoneFill = Field(default_factory=ZoneFill)
+    midfoot: ZoneFill = Field(default_factory=ZoneFill)
+    forefoot: ZoneFill = Field(default_factory=ZoneFill)
+    toe: ZoneFill = Field(default_factory=ZoneFill)
+
+
+# Documented default zone->lattice map (data only). A downstream geometry pass
+# MAY consult this when a prescription requests variable stiffness without naming
+# a family per zone. Does not change current defaults (default Fill is all-solid).
+DEFAULT_ZONE_LATTICE: dict[str, str] = {
+    "heel": "primitive", "midfoot": "diamond",
+    "forefoot": "gyroid", "toe": "diamond",
+}
+
+
 class FootRx(BaseModel):
     mods: List[Mod] = []
+    fill: Optional[Fill] = None   # None => solid everywhere (current behavior)
 
 
 class Shell(BaseModel):

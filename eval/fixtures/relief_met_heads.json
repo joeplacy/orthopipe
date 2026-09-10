@@ -1,0 +1,22 @@
+{
+  "order_id": "relief_met_heads",
+  "left": {
+    "mods": [
+      {
+        "type": "relief",
+        "landmark": "met_heads",
+        "depth_mm": 3.0,
+        "radius_mm": 15.0
+      }
+    ],
+    "fill": null
+  },
+  "right": null,
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": false,
+  "ambiguities": []
+}

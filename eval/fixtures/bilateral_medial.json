@@ -1,0 +1,28 @@
+{
+  "order_id": "bilateral_medial",
+  "left": {
+    "mods": [
+      {
+        "type": "medial_wedge",
+        "degrees": 5.0
+      }
+    ],
+    "fill": null
+  },
+  "right": {
+    "mods": [
+      {
+        "type": "medial_wedge",
+        "degrees": 5.0
+      }
+    ],
+    "fill": null
+  },
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": false,
+  "ambiguities": []
+}

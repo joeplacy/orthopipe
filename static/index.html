@@ -73,9 +73,16 @@
       <button id="btnRight" class="active" onclick="setSide('right')">RIGHT foot</button>
     </div>
 
-    <h2>2 · Scan file (.obj)</h2>
+    <h2>2 · Scan file (.obj / phone scan)</h2>
     <div id="dropzone">Drag the exported scan here<br>or click to browse</div>
-    <input type="file" id="fileInput" accept=".obj,.stl,.ply" style="display:none">
+    <input type="file" id="fileInput" accept=".obj,.stl,.ply,.usdz" style="display:none">
+    <p id="captureGuide" style="font-size:12px;color:#8aa;line-height:1.5;margin:8px 2px">
+      <b>Phone capture:</b> hold the foot in <b>neutral subtalar position</b> (relaxed, ankle
+      neutral, non-weight-bearing per clinic protocol). Use even lighting and a slow, steady
+      orbit. <b>Export .obj or .ply from your capture app</b> (.usdz is accepted only if USD
+      tooling is installed server-side). Scans in meters are auto-scaled to mm on upload.
+    </p>
+    <div id="uploadWarnings" style="font-size:12px;color:#e0a030;margin:4px 2px"></div>
 
     <h2>3 · Prescription (from work order)</h2>
     <textarea id="rxText" placeholder="Paste the clinical Rx text here for the audit record (optional)"></textarea>
@@ -131,6 +138,41 @@
     <div class="reportbar" id="report"><span class="metric">No model generated yet.</span></div>
   </div>
 </main>
+
+<!-- Historical-order replay: deviation heatmap vs accepted reference (batch-2 item 1) -->
+<section id="replayPanel" style="max-width:900px;margin:24px auto;padding:0 16px">
+  <h2 style="margin-bottom:8px">Replay diff vs historical norm</h2>
+  <div class="row" style="gap:8px;align-items:center">
+    <input type="text" id="replayOrderId" placeholder="order_id (e.g. SYNTH-000)" style="flex:1">
+    <button class="btn" id="btnReplay" onclick="loadReplay()">Load scorecard</button>
+    <span id="replayBadge"></span>
+  </div>
+  <div id="replayStatus" style="margin:8px 0;color:#888"></div>
+  <img id="replayHeatmap" alt="deviation heatmap" style="max-width:100%;display:none;border:1px solid #333;border-radius:8px">
+  <div id="replayStats" style="font-size:13px;color:#bbb"></div>
+</section>
+<script>
+async function loadReplay() {
+  const id = document.getElementById('replayOrderId').value.trim();
+  const st = document.getElementById('replayStatus');
+  const badge = document.getElementById('replayBadge');
+  const img = document.getElementById('replayHeatmap');
+  const stats = document.getElementById('replayStats');
+  badge.innerHTML = ''; img.style.display = 'none'; stats.innerHTML = '';
+  if (!id) { st.textContent = 'Enter an order_id.'; return; }
+  st.textContent = 'Loading…';
+  const r = await fetch('/api/replay/' + encodeURIComponent(id));
+  if (!r.ok) { st.textContent = 'No replay scorecard for that order_id.'; return; }
+  const j = await r.json(), c = j.scorecard;
+  st.textContent = '';
+  if (c.diverges_from_norm) {
+    badge.innerHTML = '<span style="background:#c0202a;color:#fff;padding:3px 10px;border-radius:12px;font-weight:800;font-size:12px">⚠ diverges from historical norm</span>';
+  }
+  img.src = j.heatmap_url + '?t=' + Date.now(); img.style.display = 'block';
+  stats.innerHTML = `mean dev <b>${c.mean_dev} mm</b> · p95 <b>${c.p95} mm</b> · `
+    + `Hausdorff <b>${c.hausdorff} mm</b> · Δvol <b>${c.vol_delta_cm3} cm³</b> · align rmse <b>${c.rmse} mm</b>`;
+}
+</script>
 
 <script type="importmap">
 { "imports": {
@@ -209,6 +251,8 @@ async function upload(file) {
   const j = await r.json();
   scanId = j.scan_id;
   dz.classList.add('loaded'); dz.textContent = `✓ ${j.filename}`;
+  const uw = document.getElementById('uploadWarnings');
+  if (uw) uw.textContent = (j.warnings && j.warnings.length) ? '⚠ ' + j.warnings.join('; ') : '';
   document.getElementById('btnGenerate').disabled = false;
   status('Scan uploaded. Set the prescription, then Generate.');
 }

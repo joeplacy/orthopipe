@@ -1,0 +1,20 @@
+{
+  "order_id": "single_medial_left",
+  "left": {
+    "mods": [
+      {
+        "type": "medial_wedge",
+        "degrees": 4.0
+      }
+    ],
+    "fill": null
+  },
+  "right": null,
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": false,
+  "ambiguities": []
+}

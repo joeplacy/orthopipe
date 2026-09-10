@@ -1,0 +1,28 @@
+{
+  "order_id": "shell_specified",
+  "left": {
+    "mods": [
+      {
+        "type": "medial_wedge",
+        "degrees": 4.0
+      }
+    ],
+    "fill": null
+  },
+  "right": {
+    "mods": [
+      {
+        "type": "medial_wedge",
+        "degrees": 4.0
+      }
+    ],
+    "fill": null
+  },
+  "shell": {
+    "thickness_mm": 4.0,
+    "trim": "full",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": false,
+  "ambiguities": []
+}

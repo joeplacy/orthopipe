@@ -41,6 +41,8 @@ in sync until the duplication is cleaned up upstream).
 | `rx_parser.py` | Claude-powered free-text Rx → `Prescription` (needs `ANTHROPIC_API_KEY`) |
 | `app.py` | FastAPI review-station backend (incl. `/api/parse_rx`) |
 | `static/index.html` | Review-station frontend (served by `app.py`) |
+| `vendor/` | Vendored third-party code (MIT ampscan ICP core), kept out of `requirements.txt` |
+| `templates/` | Canonical foot template(s) for ICP alignment (in-frame, plantar z=0) |
 
 ## Notes
 

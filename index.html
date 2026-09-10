@@ -73,9 +73,16 @@
       <button id="btnRight" class="active" onclick="setSide('right')">RIGHT foot</button>
     </div>
 
-    <h2>2 · Scan file (.obj)</h2>
+    <h2>2 · Scan file (.obj / phone scan)</h2>
     <div id="dropzone">Drag the exported scan here<br>or click to browse</div>
-    <input type="file" id="fileInput" accept=".obj,.stl,.ply" style="display:none">
+    <input type="file" id="fileInput" accept=".obj,.stl,.ply,.usdz" style="display:none">
+    <p id="captureGuide" style="font-size:12px;color:#8aa;line-height:1.5;margin:8px 2px">
+      <b>Phone capture:</b> hold the foot in <b>neutral subtalar position</b> (relaxed, ankle
+      neutral, non-weight-bearing per clinic protocol). Use even lighting and a slow, steady
+      orbit. <b>Export .obj or .ply from your capture app</b> (.usdz is accepted only if USD
+      tooling is installed server-side). Scans in meters are auto-scaled to mm on upload.
+    </p>
+    <div id="uploadWarnings" style="font-size:12px;color:#e0a030;margin:4px 2px"></div>
 
     <h2>3 · Prescription (from work order)</h2>
     <textarea id="rxText" placeholder="Paste the clinical Rx text here for the audit record (optional)"></textarea>
@@ -209,6 +216,8 @@ async function upload(file) {
   const j = await r.json();
   scanId = j.scan_id;
   dz.classList.add('loaded'); dz.textContent = `✓ ${j.filename}`;
+  const uw = document.getElementById('uploadWarnings');
+  if (uw) uw.textContent = (j.warnings && j.warnings.length) ? '⚠ ' + j.warnings.join('; ') : '';
   document.getElementById('btnGenerate').disabled = false;
   status('Scan uploaded. Set the prescription, then Generate.');
 }

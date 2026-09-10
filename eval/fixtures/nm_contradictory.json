@@ -1,0 +1,14 @@
+{
+  "order_id": "nm_contradictory",
+  "left": null,
+  "right": null,
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": true,
+  "ambiguities": [
+    "contradictory medial and lateral wedge on same foot"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "order_id": "relief_base_5th",
+  "left": {
+    "mods": [
+      {
+        "type": "relief",
+        "landmark": "base_5th_met",
+        "depth_mm": 2.0,
+        "radius_mm": 12.0
+      }
+    ],
+    "fill": null
+  },
+  "right": {
+    "mods": [
+      {
+        "type": "relief",
+        "landmark": "base_5th_met",
+        "depth_mm": 2.0,
+        "radius_mm": 12.0
+      }
+    ],
+    "fill": null
+  },
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": false,
+  "ambiguities": []
+}

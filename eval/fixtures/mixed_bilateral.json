@@ -1,0 +1,32 @@
+{
+  "order_id": "mixed_bilateral",
+  "left": {
+    "mods": [
+      {
+        "type": "medial_wedge",
+        "degrees": 4.0
+      }
+    ],
+    "fill": null
+  },
+  "right": {
+    "mods": [
+      {
+        "type": "medial_wedge",
+        "degrees": 4.0
+      },
+      {
+        "type": "heel_lift",
+        "height_mm": 6.35
+      }
+    ],
+    "fill": null
+  },
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": false,
+  "ambiguities": []
+}

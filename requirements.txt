@@ -7,7 +7,13 @@ networkx
 matplotlib
 pydantic
 pymeshlab
+scikit-image
+manifold3d
 fastapi
 uvicorn
 python-multipart
 anthropic
+
+# Optional extras (NOT installed by default; lazy-imported when selected):
+#   ollama            # ORTHOPIPE_RX_BACKEND=local (PHI-safe local Rx parsing)
+#   scikit-learn      # landmarks.LearnedLandmarkDetector (detector="learned")

@@ -1,0 +1,22 @@
+{
+  "order_id": "relief_hallux",
+  "left": null,
+  "right": {
+    "mods": [
+      {
+        "type": "relief",
+        "landmark": "hallux",
+        "depth_mm": 2.0,
+        "radius_mm": 12.0
+      }
+    ],
+    "fill": null
+  },
+  "shell": {
+    "thickness_mm": 3.5,
+    "trim": "3quarter",
+    "heel_cup_depth_mm": 10.0
+  },
+  "needs_manual": false,
+  "ambiguities": []
+}
